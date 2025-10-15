@@ -13,6 +13,22 @@
 
 ---
 
+## 📞 Kontak & Dukungan
+
+| Jenis | Kontak |
+|-------|--------|
+| 👑 **Owner** | [📱 WhatsApp](https://wa.me/6281510040802?text=Halo%20bang%20Azbry!) ・ [📧 Email](mailto:support@azbry.system) |
+| 🤖 **Bot Aktif** | [🌐 Klik untuk Chat Bot](https://wa.me/6285189988271?text=Hai%20Bot%20Azbry%20MD) |
+| 💬 **Instagram** | [lagi dibuat](https://instagram.com/) |
+| 🪄 **Website** | [azbry-system.web.app](https://azbry-system.web.app) |
+| ☕ **Donasi & Dukungan** | (gada gabutuh duit) |
+
+> 🧠 **Catatan:**  
+> Hanya hubungi nomor Owner untuk kerja sama, laporan bug, atau bantuan teknis.  
+> Bot aktif 24 jam — gunakan perintah `.menu` untuk memulai.
+
+---
+
 ### 📊 GitHub Stats  
 <p align="center">
   <img src="https://github-readme-stats.vercel.app/api?username=FebryWesker&show_icons=true&theme=radical&count_private=true" width="49%"/>
@@ -31,7 +47,7 @@
 ### 🌐 Connect With Me  
 <p align="center">
   <a href="https://github.com/FebryWesker"><img src="https://img.shields.io/badge/GitHub-F7B42C?style=for-the-badge&logo=github&logoColor=black"/></a>
-  <a href="https://instagram.com/syfebry._"><img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/></a>
+  <a href="https://instagram.com/._"><img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/></a>
 </p>
 
 ---
