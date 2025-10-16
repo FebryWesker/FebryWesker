@@ -66,3 +66,5 @@
 > Diperbolehkan *fork* atau modifikasi selama tetap mencantumkan nama pembuat asli.
 
 🧠 *Azbry System™ — Crafted with passion & precision.*
+
+<meta name="google-site-verification" content="MmoXPHyXIpcKuHTW7zfwxrOhNSZTGgHf_d21LPCYzx0" />
