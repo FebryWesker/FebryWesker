@@ -53,34 +53,16 @@
 ---
 <div align="center">
 
-# ⚠️ PERHATIAN! ⚠️  
-### 🔽 SCROLL KE BAWAH UNTUK LIHAT  
-## 💻 SOURCE CODE **AZBRY-MD**
+<h1 align="center">⚠️ SCROLL KE BAWAH ⚠️</h1>
+<h3 align="center">💻 Source Code buatan <b>FebryWesker (Azbry-MD)</b> ada di bawah</h3>
+<p align="center"><a href="#source-azbry-md">⬇️ Klik di sini untuk lompat langsung</a></p>
 
 ---
 
-<p>
-🧩 <b>Source code buatan saya (FebryWesker / Azbry-MD)</b>  
-terletak di bagian bawah halaman ini.  
-Silakan <a href="#azbry-md-source"><b>klik di sini</b></a> untuk langsung lompat ke sana.
-</p>
-
----
-
-</div>
-
-## 🔍 Petunjuk
-Bagian atas README ini berisi informasi umum, panduan instalasi, dan catatan proyek.  
-Source Code utama buatan saya bisa kamu temukan di bawah bagian:
-
-> <a id="azbry-md-source"></a>
+<a id="source-azbry-md"></a>
 > ## 🧩 Source Code Azbry-MD
 
 > ⚠️ Mohon tidak menghapus kredit atau watermark.  
 > Diperbolehkan *fork* atau modifikasi selama tetap mencantumkan nama pembuat asli.
 
----
-
-## 🧩 Source Code Azbry-MD
-<!-- Letakkan file, struktur, atau penjelasan utama kamu mulai dari sini -->
 🧠 *Azbry System™ — Crafted with passion & precision.*
