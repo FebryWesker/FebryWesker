@@ -1,177 +1,71 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>FebryWesker — Azbry-MD</title>
-<meta name="description" content="Portofolio ringkas FebryWesker (Azbry-MD). Smart Automation & Elegant System." />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#0b0d10;
-    --panel:#111418;
-    --muted:#98a2b3;
-    --text:#e6e8ec;
-    --accent:#b8ff9a;
-    --accent-2:#8ee887;
-    --ring:rgba(184,255,154,.18);
-    --shadow:0 4px 16px rgba(0,0,0,.35);
-    --radius:16px;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,Helvetica,sans-serif;
-    background:radial-gradient(1200px 800px at 20% -10%, rgba(184,255,154,.06), transparent 40%),
-               radial-gradient(1000px 700px at 120% 30%, rgba(184,255,154,.04), transparent 35%),
-               var(--bg);
-    color:var(--text);
-  }
-  .wrap{max-width:980px;margin:0 auto;padding:28px 18px 56px}
-  header{display:flex;align-items:center;gap:16px;margin:8px 0 22px}
-  .brand h1{font-weight:800;line-height:1.05;font-size:clamp(28px,4.6vw,42px);margin:0}
-  .brand small{display:block;margin-top:6px;color:var(--muted);font-weight:600;letter-spacing:.2px}
-  .hero{
-    margin:26px 0 28px;padding:26px;border-radius:var(--radius);
-    background:linear-gradient(180deg, rgba(255,255,255,.02), transparent 60%), var(--panel);
-    border:1px solid rgba(255,255,255,.04); box-shadow:var(--shadow);
-  }
-  .tag{display:inline-flex;gap:8px;align-items:center;background:rgba(184,255,154,.09);
-       color:#dfffe0;border:1px solid var(--ring);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.35px;text-transform:uppercase}
-  .hero h2{margin:16px 0 12px;font-size:clamp(22px,3.8vw,30px)}
-  .hero p{margin:0;color:var(--muted)}
-  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:18px}
-  .span-7{grid-column:span 7}
-  .span-5{grid-column:span 5}
-  @media(max-width:800px){.span-7,.span-5{grid-column:span 12}}
-  .card{
-    background:var(--panel); border:1px solid rgba(255,255,255,.05);
-    border-radius:var(--radius); padding:18px; box-shadow:var(--shadow);
-  }
-  .card h3{margin:2px 0 10px;font-size:18px}
-  .card p{margin:0 0 14px;color:var(--muted)}
-  .btn{
-    display:inline-flex;align-items:center;gap:10px;
-    padding:12px 16px;border-radius:12px;font-weight:700;text-decoration:none;color:#0b0d10;
-    background:linear-gradient(180deg,var(--accent),var(--accent-2));
-    box-shadow:0 6px 22px rgba(184,255,154,.25), inset 0 0 0 1px rgba(0,0,0,.12);
-    border:0; cursor:pointer;
-    opacity:0;transform:translateY(12px);
-    animation:fadeBtn .8s ease forwards;
-  }
-  .btn.ghost{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,.09)}
-  .btn + .btn{margin-left:10px}
-  .icon{font-size:18px}
-  section{margin-top:28px}
-  .section-title{font-size:20px;margin:0 0 12px}
-  .muted{color:var(--muted)}
-  .stack{display:flex;flex-wrap:wrap;gap:10px}
-  footer{margin-top:36px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
-  .mono{opacity:.9}
-  .fade{opacity:0;transform:translateY(6px);animation:fade .6s ease-out forwards}
-  .fade.d2{animation-delay:.07s}.fade.d3{animation-delay:.14s}.fade.d4{animation-delay:.21s}
-  @keyframes fade{to{opacity:1;transform:none}}
-  @keyframes fadeBtn{to{opacity:1;transform:none}}
-  #dbg{position:fixed;left:10px;right:10px;bottom:10px;max-height:40vh;overflow:auto;
-       font:12px/1.5 monospace;background:rgba(0,0,0,.9);color:#d2e3db;border:1px solid #2a2f33;
-       border-radius:10px;padding:8px;white-space:pre-wrap;z-index:999999;box-shadow:0 8px 30px rgba(0,0,0,.35)}
-  #dbg b{color:#b8ff9a}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Azbry Tap Runner</title>
+  <meta name="description" content="Azbry Tap Runner — game sederhana bertema Azbry." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0b0d10;         /* dasar gelap */
+      --panel:#111418;      /* kartu/section */
+      --muted:#98a2b3;      /* teks sekunder */
+      --text:#e6e8ec;       /* teks utama */
+      --accent:#b8ff9a;     /* hijau neon halus */
+      --ring:rgba(184,255,154,.18);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,Helvetica,sans-serif;
+      background:radial-gradient(1000px 700px at 120% 30%, rgba(184,255,154,.05), transparent 35%), var(--bg);
+      color:var(--text); display:flex; align-items:center; justify-content:center;
+    }
+    .wrap{width:100%; max-width:860px; padding:24px 16px}
+    .card{
+      background:var(--panel);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:16px; padding:20px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    h1{margin:0 0 4px;font-size:clamp(24px,4.5vw,40px);font-weight:800}
+    .sub{color:var(--muted);margin:0 0 18px;font-weight:600}
+    .frame{
+      border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.06);
+      box-shadow:0 0 0 1px var(--ring), 0 20px 50px rgba(0,0,0,.45);
+      background:#0f1114;
+    }
+    footer{color:var(--muted);font-size:13px;text-align:center;margin-top:14px}
+    .hint{color:#dfffe0;background:rgba(184,255,154,.08);border:1px solid var(--ring);
+      padding:6px 10px;border-radius:999px;display:inline-block;margin-bottom:12px;font-size:12px;font-weight:700;letter-spacing:.25px}
+    /* biar canvas responsif tanpa mengubah atribut width/height (logika game pakai atribut) */
+    .canvas-wrap{position:relative; width:100%; max-width:720px; margin:0 auto;}
+    .canvas-wrap canvas{display:block; width:100%; height:auto;}
+  </style>
 </head>
 <body>
   <div class="wrap">
-    <header class="fade">
-      <div class="brand">
-        <h1>FebryWesker</h1>
-        <small>Azbry-MD • WhatsApp Bot</small>
-      </div>
-    </header>
+    <div class="card">
+      <h1>Azbry Tap Runner</h1>
+      <p class="sub">Tap untuk terbang dan hindari rintangan!</p>
+      <div class="hint">Monochrome • Simple</div>
 
-    <div class="hero fade d2">
-      <span class="tag">Monochrome • Simple</span>
-      <h2>Selamat Datang di Portofolio Azbry System</h2>
-      <p>Terima kasih atas kunjungannya. Temukan sistem, dokumentasi, dan proyek Azbry-MD di bawah ini.</p>
-      <div class="grid">
-        <div class="card span-7">
-          <h3>Prioritas Utama</h3>
-          <p class="muted">Dokumentasi & pusat layanan Azbry.</p>
-          <a class="btn" href="https://github.com/FebryWesker/Azbry-MD" target="_blank"><span class="icon">🧠</span> Azbry System</a>
-          <a class="btn ghost" href="https://github.com/FebryWesker" target="_blank"><span class="icon">🌐</span> GitHub</a>
-        </div>
-        <div class="card span-5">
-          <h3>Kontak Cepat</h3>
-          <p class="muted">Perlu bantuan cepat via WhatsApp? Buka di sini.</p>
-          <a class="btn ghost" href="#whatsapp"><span class="icon">💬</span> WhatsApp</a>
+      <div class="frame">
+        <div class="canvas-wrap">
+          <!-- Penting: atribut width/height agar game.js membaca dimensi yang tepat -->
+          <canvas id="game" width="360" height="600"></canvas>
         </div>
       </div>
+
+      <footer>© 2025 Azbry System • Game by FebryWesker</footer>
     </div>
-
-    <section id="whatsapp" class="fade d4">
-      <h3 class="section-title">WhatsApp</h3>
-      <div class="card">
-        <p class="muted">Pilih salah satu tombol di bawah untuk membuka chat. Nomor tidak ditampilkan di halaman ini demi privasi.</p>
-        <div class="stack">
-          <a class="btn" href="https://wa.me/6281510040802" target="_blank"><span class="icon">👤</span> Nomor Owner</a>
-          <a class="btn ghost" href="https://wa.me/6285189988271" target="_blank"><span class="icon">🤖</span> Nomor Bot</a>
-        </div>
-      </div>
-    </section>
-
-    <footer class="fade d4">
-      <span>© <span id="y"></span> FebryWesker</span>
-      <span class="mono">Made with ❤ • Azbry-MD</span>
-    </footer>
   </div>
 
-  <div id="dbg" hidden></div>
-  <script>
-    document.getElementById('y').textContent = new Date().getFullYear();
-
-    document.querySelectorAll('a[href^="#"]').forEach(a=>{
-      a.addEventListener('click',e=>{
-        const id=a.getAttribute('href');
-        if(id.length>1){
-          e.preventDefault();
-          document.querySelector(id)?.scrollIntoView({behavior:'smooth',block:'start'});
-          history.pushState(null,'',id);
-        }
-      })
-    });
-
-    (function(){
-      const box=document.getElementById('dbg');
-      const show=()=>{box.hidden=false};
-      const line=(type,msg)=>{
-        show();
-        const t=new Date().toLocaleTimeString();
-        box.textContent += `[${t}] ${type.toUpperCase()}: ${msg}\n`;
-        box.scrollTop = box.scrollHeight;
-      };
-      ['log','warn','error'].forEach(fn=>{
-        const orig=console[fn];
-        console[fn]=function(...args){
-          line(fn, args.map(a => (typeof a==='object' ? JSON.stringify(a) : String(a))).join(' '));
-          try{orig.apply(console,args)}catch{}
-        };
-      });
-      window.addEventListener('error', e=>{
-        const target=e.target||{};
-        if (target.src) line('error', `Resource load fail: ${target.src}`);
-        else line('error', e.message||'Unknown error');
-      }, true);
-      window.addEventListener('unhandledrejection', e=>{
-        line('error', 'Promise: ' + (e.reason && (e.reason.message||e.reason)) );
-      });
-      ['assets/img/bird.png','assets/img/bg-city.png'].forEach(u=>{
-        const img=new Image();
-        img.onload=()=>console.log('ASSET OK', u);
-        img.onerror=()=>console.error('ASSET FAIL', u);
-        img.src=u + `?t=${Date.now()}`;
-      });
-    })();
-  </script>
+  <!-- Load logika game -->
   <script src="game.js" defer></script>
+  <noscript>Aktifkan JavaScript untuk memainkan game.</noscript>
 </body>
 </html>
