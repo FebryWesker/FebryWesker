@@ -3,11 +3,8 @@
   "public": true,
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
-    { "src": "assets/**",  "use": "@vercel/static" },
-    { "src": "game.js",    "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "game.js", "use": "@vercel/static" },
+    { "src": "assets/**", "use": "@vercel/static" }
   ],
   "cleanUrls": true,
   "trailingSlash": false
