@@ -25,7 +25,7 @@ let score = 0;
 let highScore = parseInt(localStorage.getItem('azbry_highscore') || '0', 10);
 
 // ===== Player =====
-const player = { x: 70, y: H/2, r: 18, vy: 0, gravity: 0.10, jump: -8.2, img: null };
+const player = { x: 70, y: H/2, r: 18, vy: 0, gravity: 1.0, jump: -8.2, img: null };
 
 // ===== Background =====
 const bg = { img: null, x1: 0, x2: W, speed: 0.6 };
