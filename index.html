@@ -1,69 +1,65 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Azbry Tap Runner</title>
-<meta name="description" content="Minigame sederhana bertema Azbry — tap to fly, hindari rintangan, raih skor!" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<title>Azbry-MD MiniGame</title>
 <style>
-  :root{
-    --bg:#0b0d10;
-    --panel:#111418;
-    --text:#e6e8ec;
-    --muted:#98a2b3;
-    --accent:#b8ff9a;
-    --accent2:#8ee887;
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #0b0d10;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
   }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0;display:grid;place-items:center;background:var(--bg);color:var(--text);
-    font-family:Inter,system-ui,Segoe UI,Roboto,Arial,Helvetica,sans-serif;
-    padding:16px;
+  canvas {
+    display: block;
+    margin: 0 auto;
+    background: #000;
   }
-  .wrap{
-    width:100%;
-    max-width:420px;
+
+  /* ==== Footer Azbry (tetap tampil selama main) ==== */
+  .azbry-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.3);
+    color: #b8ff9a;
+    font-weight: 500;
+    font-size: 13px;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(6px);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+    z-index: 999;
   }
-  h1{font-size:20px;margin:0 0 10px;font-weight:800}
-  p{margin:0 0 10px;color:var(--muted)}
-  .panel{
-    background:var(--panel);
-    border:1px solid rgba(255,255,255,.06);
-    border-radius:16px;
-    padding:12px 12px 16px;
-    box-shadow:0 6px 24px rgba(0,0,0,.35);
+  .footer-btn {
+    color: #b8ff9a;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(184,255,154,0.4);
+    transition: all 0.25s ease;
   }
-  canvas{
-    width:100%;
-    height:auto;
-    aspect-ratio: 9 / 16;     /* jaga rasio tegak (HP) */
-    display:block;
-    border-radius:12px;
-    background:#000;          /* fallback saat bg belum termuat */
-    touch-action:manipulation;
-  }
-  .hint{
-    margin-top:10px;
-    font-size:12px;
-    color:var(--muted);
-    text-align:center;
+  .footer-btn:hover {
+    background: rgba(184,255,154,0.1);
+    transform: scale(1.05);
   }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="panel">
-      <h1>Azbry Tap Runner</h1>
-      <p>Tap/klik/Spasi untuk terbang. Hindari rintangan & kumpulkan skor.</p>
-      <canvas id="game" width="360" height="640"></canvas>
-      <div class="hint">Tip: kalau terlalu cepat/berat, atur nilai <code>GRAVITY</code>, <code>JUMP_VELOCITY</code>, dan <code>PIPE_SPEED</code> di <code>game.js</code>.</div>
-    </div>
-  </div>
+  <canvas id="gameCanvas" width="360" height="640"></canvas>
 
-  <script src="./game.js"></script>
+  <footer class="azbry-footer">
+    <span>© Azbry-MD • FebryWesker</span>
+    <a href="https://azbry-portofolio.vercel.app/" target="_blank" class="footer-btn">🌐 Portofolio</a>
+  </footer>
+
+  <script src="game.js"></script>
 </body>
 </html>
