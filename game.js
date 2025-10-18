@@ -1,352 +1,437 @@
-/* ===== AZBRY TAP-RUNNER — SAFE MODE LOOP ===== */
+/* Azbry-MD MiniGame — FebryWesker
+ * - Mobile tap friendly
+ * - 9:16 virtual canvas (360x640) dengan autoscale
+ * - BG parallax, pipa atas-bawah, skor 1 per pipa
+ * - Game Over + tombol Main Lagi
+ * - Footer brand + tombol ke portofolio (pojok kanan)
+ */
 
-/* ---- Konfigurasi gameplay (boleh kamu tweak) ---- */
-const GRAVITY = 0.30;        // lebih kecil = jatuh lebih pelan
-const JUMP_VELOCITY = -8.2;  // sedikit lebih lemah biar loncatnya pas
-const PIPE_SPEED = 2.5;      // turunin biar gerakan pipa lebih pelan
-const GAP_HEIGHT = 160;      // celah antar pipa sedikit lebih lebar
-const PIPE_WIDTH = 55;       // lebar pipa agak besar biar enak dihindarin
-const PIPE_SPACING = 600;    // jarak antar pipa lebih jauh
+(() => {
+  // ========= Konstanta gameplay (boleh tweak angka ini) =========
+  const VIRTUAL_W = 360, VIRTUAL_H = 640;   // rasio 9:16
+  let GRAVITY = 0.22;       // tarik ke bawah (turunin kalau terlalu jatuh)
+  let JUMP_VELOCITY = -5.2; // tinggi lompatan (lebih kecil = lompatan pendek)
+  let PIPE_SPEED = 2.4;     // kecepatan gerak pipa (turunin kalau terlalu cepat)
+  let GAP_HEIGHT = 190;     // jarak antar pipa (naikin kalau terlalu sulit)
+  const PIPE_WIDTH = 56;
+  let PIPE_SPACING = 330;   // jarak antar spawn pipa (naikin kalau terlalu rapat)
 
-/* ---- Pegangan DOM & canvas ---- */
-const canvas = document.getElementById('game') || (() => {
-  const c = document.createElement('canvas');
-  c.id = 'game';
-  document.body.appendChild(c);
-  return c;
-})();
-const ctx = canvas.getContext('2d');
+  const REWARD_SCORE = 5;   // ambang hadiah (sementara 5, nanti silakan ubah)
 
-/* ---- Overlay debug di HP (biar kelihatan kalau ada error) ---- */
-let debugEl = document.getElementById('debug');
-if (!debugEl) {
-  debugEl = document.createElement('div');
-  debugEl.id = 'debug';
-  debugEl.style.cssText = 'position:fixed;left:8px;bottom:8px;max-width:90vw;background:rgba(0,0,0,.5);color:#b8ff9a;font:12px/1.35 monospace;padding:6px 8px;border-radius:8px;z-index:9999;display:none;white-space:pre-wrap;';
-  document.body.appendChild(debugEl);
-}
-function dbg(msg) {
-  debugEl.style.display = 'block';
-  debugEl.textContent = String(msg).slice(0, 800);
-}
+  // ========= Canvas & scaling =========
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  let scale = 1, offsetX = 0, offsetY = 0;
 
-/* Tangkap error global supaya loop nggak mati */
-window.addEventListener('error', (e) => dbg(`JS Error: ${e.message}`));
-
-/* ---- Ukuran aman (9:16 ramah-HP, tanpa devicePixelRatio) ---- */
-function fitCanvas916() {
-  const sw = window.innerWidth;
-  const sh = window.innerHeight;
-  // target 9:16
-  let w = sw, h = Math.round((sw * 16) / 9);
-  if (h > sh) { // kalau kepanjangan, pakai tinggi layar
-    h = sh;
-    w = Math.round((sh * 9) / 16);
+  function resize() {
+    const ww = window.innerWidth, wh = window.innerHeight;
+    const ar = VIRTUAL_W / VIRTUAL_H;
+    const winAr = ww / wh;
+    if (winAr > ar) {
+      // terlalu lebar -> tinggi penuh, sisinya hitam
+      scale = wh / VIRTUAL_H;
+      canvas.width = Math.floor(VIRTUAL_W * scale);
+      canvas.height = Math.floor(VIRTUAL_H * scale);
+      offsetX = Math.floor((ww - canvas.width) / 2);
+      offsetY = 0;
+    } else {
+      // terlalu tinggi -> lebar penuh, atas-bawah hitam
+      scale = ww / VIRTUAL_W;
+      canvas.width = Math.floor(VIRTUAL_W * scale);
+      canvas.height = Math.floor(VIRTUAL_H * scale);
+      offsetX = 0;
+      offsetY = Math.floor((wh - canvas.height) / 2);
+    }
+    canvas.style.position = 'fixed';
+    canvas.style.left = offsetX + 'px';
+    canvas.style.top = offsetY + 'px';
   }
-  canvas.width = w;
-  canvas.height = h;
-}
-fitCanvas916();
-window.addEventListener('resize', () => {
-  fitCanvas916();
-});
+  window.addEventListener('resize', resize, { passive: true });
+  resize();
 
-/* ---- Asset (opsional, tidak bikin crash kalau gagal) ---- */
-const birdImg = new Image();
-birdImg.src = './assets/bird.jpg'; // ganti ke path repo kamu
-birdImg.onerror = () => dbg('Gagal load bird image (pakai bentuk bulat).');
+  // ========= Assets =========
+  const birdImg = new Image();
+  birdImg.src = 'assets/bird.jpg';
 
-const bgImg = new Image();
-bgImg.src = './assets/bg.jpg';     // ganti ke path repo kamu
-bgImg.onerror = () => dbg('Gagal load background (pakai fill saja).');
+  const bgImg = new Image();
+  bgImg.src = 'assets/bg.jpg';
 
-/* ---- State game ---- */
-let running = false;
-let gameOver = false;
-let score = 0;
-let bestScore = 0;
+  // ========= State =========
+  let state = 'ready'; // 'ready' | 'playing' | 'over'
+  let bird, pipes, score, best, bgX, lastSpawnX, rewardShown;
+  let lastTime = 0;
 
-const bird = {
-  x: 0,
-  y: 0,
-  r: 18,
-  vy: 0
-};
-
-let pipes = [];
-let bgOffset = 0;
-
-/* ---- Reset state ---- */
-function resetGame() {
-  fitCanvas916();
-  const W = canvas.width, H = canvas.height;
-  running = true;
-  gameOver = false;
-  score = 0;
-
-  bird.x = Math.round(W * 0.25);
-  bird.y = Math.round(H * 0.45);
-  bird.vy = 0;
-
-  pipes = [];
-  bgOffset = 0;
-
-  // spawn beberapa pipa awal
-  let x = W + 60;
-  for (let i = 0; i < 3; i++) {
-    const gapY = randInt(Math.round(H * 0.22), Math.round(H * 0.65));
-    pipes.push({ x, gapY, passed: false });
-    x += PIPE_SPACING;
+  function resetGame() {
+    bird = {
+      x: 80, y: VIRTUAL_H / 2, vy: 0,
+      w: 38, h: 38
+    };
+    pipes = [];
+    score = 0;
+    best = Number(localStorage.getItem('azbry_best') || '0');
+    bgX = 0;
+    lastSpawnX = 0;
+    rewardShown = false;
+    state = 'ready';
   }
-}
+  resetGame();
 
-/* ---- Util ---- */
-function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
+  function spawnPipePair(xPos) {
+    const marginTop = 40, marginBottom = 80;
+    const maxTop = VIRTUAL_H - marginBottom - GAP_HEIGHT - marginTop;
+    const topHeight = Math.floor(marginTop + Math.random() * maxTop);
+    const bottomY = topHeight + GAP_HEIGHT;
 
-/* ---- Input (tap/klik/space) ---- */
-function jump() {
-  if (!running) return;
-  if (gameOver) return;
-  bird.vy = JUMP_VELOCITY;
-}
-function handleStart() {
-  if (!running) {
-    resetGame();
-    requestAnimationFrame(loop);
-  } else if (gameOver) {
-    // tombol restart wajib dipakai; tap biasa diabaikan saat game over
-  } else {
-    jump();
+    pipes.push({
+      x: xPos,
+      top: { y: 0, h: topHeight },
+      bottom: { y: bottomY, h: VIRTUAL_H - bottomY },
+      w: PIPE_WIDTH,
+      passed: false
+    });
   }
-}
-canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); handleStart(); }, { passive: false });
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' || e.code === 'ArrowUp') {
+
+  // ========= Input =========
+  function worldTap() {
+    if (state === 'ready') {
+      state = 'playing';
+      bird.vy = JUMP_VELOCITY;
+      return;
+    }
+    if (state === 'playing') {
+      bird.vy = JUMP_VELOCITY;
+      return;
+    }
+    if (state === 'over') {
+      // cek kalau klik tombol Main Lagi
+      const { mx, my } = lastPointerPage;
+      if (isInsideRestart(mx, my)) {
+        resetGame();
+        state = 'ready';
+      }
+    }
+  }
+
+  // Pointer normalization (page coords)
+  let lastPointerPage = { mx: 0, my: 0 };
+  function pointerPos(e) {
+    let px, py;
+    if (e.touches && e.touches[0]) {
+      px = e.touches[0].clientX;
+      py = e.touches[0].clientY;
+    } else {
+      px = e.clientX;
+      py = e.clientY;
+    }
+    lastPointerPage.mx = px;
+    lastPointerPage.my = py;
+    return { px, py };
+  }
+  function toVirtual(px, py) {
+    // translate dari page ke koordinat virtual
+    const cx = (px - offsetX) / scale;
+    const cy = (py - offsetY) / scale;
+    return { x: cx, y: cy };
+  }
+
+  // Listener
+  const tapHandler = (e) => {
     e.preventDefault();
-    handleStart();
-  }
-});
-
-/* ---- Tombol Restart (opsional kalau kamu sudah buat di HTML) ---- */
-const restartBtn = document.getElementById('restart');
-if (restartBtn) {
-  restartBtn.addEventListener('click', () => {
-    resetGame();
-    requestAnimationFrame(loop);
-  });
-}
-
-/* ---- Update ---- */
-function update(dt) {
-  const W = canvas.width, H = canvas.height;
-  if (gameOver) return;
-
-  // background scroll (pelan)
-  bgOffset -= PIPE_SPEED * 0.25;
-  if (bgOffset <= -W) bgOffset += W;
-
-  // fisika burung
-  bird.vy += GRAVITY;
-  bird.y += bird.vy;
-
-  // batas layar
-  if (bird.y < bird.r) { bird.y = bird.r; bird.vy = 0; }
-  if (bird.y > H - bird.r) { bird.y = H - bird.r; gameOver = true; bestScore = Math.max(bestScore, score); }
-
-  // pipa
-  pipes.forEach(p => p.x -= PIPE_SPEED);
-
-  // tambah pipa baru bila cukup jauh
-  if (pipes.length) {
-    const last = pipes[pipes.length - 1];
-    if (last.x < W - PIPE_SPACING) {
-      const gapY = randInt(Math.round(H * 0.22), Math.round(H * 0.65));
-      pipes.push({ x: last.x + PIPE_SPACING, gapY, passed: false });
-    }
-  }
-
-  // buang pipa di kiri
-  if (pipes.length && pipes[0].x + PIPE_WIDTH < 0) pipes.shift();
-
-  // skor & tabrakan
-  for (const p of pipes) {
-    // nambah skor sekali per pipa
-    if (!p.passed && p.x + PIPE_WIDTH < bird.x - bird.r) {
-  p.passed = true;
-  score += 1;
-  if (score === 5) alert('🎉 Selamat! Kamu dapet 1× Nasi Uduk Mama Alpi 🍛');
-    }
-    }
-    // cek tabrak
-    const inX = bird.x + bird.r > p.x && bird.x - bird.r < p.x + PIPE_WIDTH;
-    const gapTop = p.gapY - GAP_HEIGHT / 2;
-    const gapBot = p.gapY + GAP_HEIGHT / 2;
-    const hitTop = bird.y - bird.r < gapTop;
-    const hitBot = bird.y + bird.r > gapBot;
-    if (inX && (hitTop || hitBot)) {
-      gameOver = true;
-      bestScore = Math.max(bestScore, score);
-    }
-  }
-}
-
-/* ---- Render ---- */
-function drawBackground() {
-  const W = canvas.width, H = canvas.height;
-  if (bgImg.complete && bgImg.naturalWidth > 0) {
-    // gambar 2 ubin agar bisa looping
-    const x1 = Math.floor(bgOffset);
-    const x2 = x1 + W;
-    ctx.drawImage(bgImg, x1, 0, W, H);
-    ctx.drawImage(bgImg, x2, 0, W, H);
-  } else {
-    // fallback fill (tema gelap hijau)
-    ctx.fillStyle = '#0b0d10';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(184,255,154,0.05)';
-    ctx.fillRect(0, 0, W, Math.floor(H * 0.33));
-  }
-}
-
-function drawBird() {
-  const d = bird.r * 2;
-  if (birdImg.complete && birdImg.naturalWidth > 0) {
-    ctx.save();
-    // sedikit rotasi sesuai kecepatan buat “rasa fisik”
-    const rot = Math.max(-0.35, Math.min(0.6, bird.vy * 0.06));
-    ctx.translate(bird.x, bird.y);
-    ctx.rotate(rot);
-    ctx.drawImage(birdImg, -bird.r, -bird.r, d, d);
-    ctx.restore();
-  } else {
-    // fallback bulatan
-    ctx.beginPath();
-    ctx.arc(bird.x, bird.y, bird.r, 0, Math.PI * 2);
-    ctx.fillStyle = '#b8ff9a';
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#8ee887';
-    ctx.stroke();
-  }
-}
-
-function drawPipes() {
-  const H = canvas.height;
-  ctx.fillStyle = 'rgba(184,255,154,0.14)';
-  ctx.strokeStyle = '#8ee887';
-  ctx.lineWidth = 2.5;
-
-  for (const p of pipes) {
-    const gapTop = p.gapY - GAP_HEIGHT / 2;
-    const gapBot = p.gapY + GAP_HEIGHT / 2;
-
-    // pipa atas
-    ctx.fillRect(p.x, 0, PIPE_WIDTH, gapTop);
-    ctx.strokeRect(p.x, 0, PIPE_WIDTH, gapTop);
-
-    // pipa bawah
-    ctx.fillRect(p.x, gapBot, PIPE_WIDTH, H - gapBot);
-    ctx.strokeRect(p.x, gapBot, PIPE_WIDTH, H - gapBot);
-  }
-}
-
-function drawHUD() {
-  const W = canvas.width, H = canvas.height;
-
-  // skor
-  ctx.font = Math.floor(W * 0.07) + 'px Inter, system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#e6e8ec';
-  ctx.fillText(String(score), Math.floor(W / 2), Math.floor(H * 0.12));
-
-  // tip footer (selama main)
-  ctx.font = '12px Inter, system-ui, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillStyle = 'rgba(230,232,236,0.75)';
-  ctx.fillText('Azbry-MD — FebryWesker', 10, H - 10);
-
-  // tombol portofolio (pojok kanan bawah)
-  const linkText = 'Portofolio';
-  ctx.textAlign = 'right';
-  ctx.fillText(linkText, W - 10, H - 10);
-  // deteksi klik area linkPortofolio kecil (opsional)
-}
-
-function drawGameOver() {
-  const W = canvas.width, H = canvas.height;
-  ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#e6e8ec';
-  ctx.font = 'bold ' + Math.floor(W * 0.08) + 'px Inter, system-ui, sans-serif';
-  ctx.fillText('GAME OVER', Math.floor(W / 2), Math.floor(H * 0.42));
-
-  ctx.font = Math.floor(W * 0.045) + 'px Inter, system-ui, sans-serif';
-  ctx.fillText(`Score: ${score}  •  Best: ${bestScore}`, Math.floor(W / 2), Math.floor(H * 0.50));
-
-  ctx.font = Math.floor(W * 0.035) + 'px Inter, system-ui, sans-serif';
-  ctx.fillText('Ayo coba lagi! Capai 50 poin untuk 1× Nasi Uduk Mama Alpi', Math.floor(W / 2), Math.floor(H * 0.58));
-
-  // tombol restart visual (kalau kamu belum pakai tombol HTML)
-  ctx.fillStyle = '#b8ff9a';
-  const bw = Math.floor(W * 0.42), bh = Math.floor(H * 0.08);
-  const bx = Math.floor(W / 2 - bw / 2), by = Math.floor(H * 0.66);
-  ctx.fillRect(bx, by, bw, bh);
-  ctx.fillStyle = '#0b0d10';
-  ctx.font = 'bold ' + Math.floor(W * 0.045) + 'px Inter, system-ui, sans-serif';
-  ctx.fillText('Main Lagi', Math.floor(W / 2), Math.floor(H * 0.66 + bh * 0.65));
-
-  // area klik tombol restart (untuk canvas-only)
-  canvas.onclick = (ev) => {
-    if (!gameOver) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = ev.clientX - rect.left;
-    const y = ev.clientY - rect.top;
-    if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) {
-      resetGame();
-      requestAnimationFrame(loop);
-    }
+    pointerPos(e);
+    worldTap();
   };
-}
+  canvas.addEventListener('touchstart', tapHandler, { passive: false });
+  canvas.addEventListener('mousedown', tapHandler);
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp') {
+      e.preventDefault();
+      worldTap();
+    }
+  });
 
-/* ---- Loop dengan proteksi error ---- */
-let last = 0;
-function loop(ts) {
-  if (!running) return;
-  try {
-    const dt = ts - (last || ts);
-    last = ts;
+  // ========= Update / Physics =========
+  function update(dt) {
+    if (state === 'playing') {
+      // BG scroll
+      bgX = (bgX - PIPE_SPEED * 0.5) % VIRTUAL_W;
+
+      // Bird physics
+      bird.vy += GRAVITY;
+      bird.y += bird.vy;
+
+      // Spawn pipes
+      if (pipes.length === 0) {
+        spawnPipePair(VIRTUAL_W + 120);
+        lastSpawnX = VIRTUAL_W + 120;
+      } else {
+        const lastX = pipes[pipes.length - 1].x;
+        if (lastX < VIRTUAL_W - PIPE_SPACING) {
+          spawnPipePair(VIRTUAL_W + 40);
+        }
+      }
+
+      // Move pipes & score
+      for (const p of pipes) {
+        p.x -= PIPE_SPEED;
+        // Skor ketika burung melewati tengah pipa
+        const passX = p.x + p.w;
+        if (!p.passed && passX < bird.x) {
+          p.passed = true;
+          score += 1;
+          if (score > best) {
+            best = score;
+            localStorage.setItem('azbry_best', String(best));
+          }
+        }
+      }
+      // Remove off-screen
+      pipes = pipes.filter(p => p.x + p.w > -10);
+
+      // Collision
+      if (collide()) {
+        state = 'over';
+      }
+
+      // Floor/ceiling
+      if (bird.y + bird.h > VIRTUAL_H || bird.y < -10) {
+        state = 'over';
+      }
+    }
+  }
+
+  function collide() {
+    // AABB
+    for (const p of pipes) {
+      const bx1 = bird.x, by1 = bird.y, bx2 = bird.x + bird.w, by2 = bird.y + bird.h;
+
+      // top pipe rect
+      const tx1 = p.x, ty1 = p.top.y, tx2 = p.x + p.w, ty2 = p.top.y + p.top.h;
+      if (bx1 < tx2 && bx2 > tx1 && by1 < ty2 && by2 > ty1) return true;
+
+      // bottom pipe rect
+      const bx_1 = p.x, by_1 = p.bottom.y, bx_2 = p.x + p.w, by_2 = p.bottom.y + p.bottom.h;
+      if (bx1 < bx_2 && bx2 > bx_1 && by1 < by_2 && by2 > by_1) return true;
+    }
+    return false;
+  }
+
+  // ========= Draw =========
+  function draw() {
+    // scaling: kita gambar ke buffer virtual lalu di-scale oleh canvas CSS;
+    // tapi di sini kita gambar langsung skala virtual dengan transform
+    ctx.save();
+    ctx.setTransform(scale, 0, 0, scale, 0, 0); // gambar dalam world coords
+
+    // Clear
+    ctx.fillStyle = '#0b0d10';
+    ctx.fillRect(0, 0, VIRTUAL_W, VIRTUAL_H);
+
+    // BG parallax (tile horizontal)
+    if (bgImg.complete && bgImg.naturalWidth) {
+      const bgW = VIRTUAL_W, bgH = VIRTUAL_H;
+      // gambar dua kali untuk loop
+      drawBg(bgX, 0, bgW, bgH);
+      drawBg(bgX + bgW, 0, bgW, bgH);
+    } else {
+      // fallback warna polos
+      ctx.fillStyle = '#0f1318';
+      ctx.fillRect(0, 0, VIRTUAL_W, VIRTUAL_H);
+    }
+
+    // Pipes
+    for (const p of pipes) {
+      // tepi hijau biar jelas
+      ctx.fillStyle = '#1b242d';
+      ctx.fillRect(p.x, p.top.y, p.w, p.top.h);
+      ctx.fillRect(p.x, p.bottom.y, p.w, p.bottom.h);
+      ctx.strokeStyle = '#8ee887';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(p.x + 1, p.top.y + 1, p.w - 2, p.top.h - 2);
+      ctx.strokeRect(p.x + 1, p.bottom.y + 1, p.w - 2, p.bottom.h - 2);
+    }
+
+    // Bird
+    if (birdImg.complete && birdImg.naturalWidth) {
+      // sedikit rotasi mengikuti kecepatan
+      const angle = Math.max(-0.35, Math.min(0.35, bird.vy * 0.03));
+      ctx.save();
+      ctx.translate(bird.x + bird.w / 2, bird.y + bird.h / 2);
+      ctx.rotate(angle);
+      ctx.drawImage(birdImg, -bird.w / 2, -bird.h / 2, bird.w, bird.h);
+      ctx.restore();
+    } else {
+      // fallback bulat hijau
+      ctx.fillStyle = '#b8ff9a';
+      ctx.beginPath();
+      ctx.arc(bird.x + bird.w / 2, bird.y + bird.h / 2, bird.w / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // HUD skor
+    ctx.fillStyle = '#e6e8ec';
+    ctx.font = 'bold 28px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(score), VIRTUAL_W / 2, 50);
+
+    // Footer brand + tombol portfolio (selama main/ready)
+    drawFooterAndPortfolio();
+
+    if (state === 'ready') {
+      ctx.fillStyle = '#e6e8ec';
+      ctx.font = '700 20px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Tap untuk mulai', VIRTUAL_W / 2, VIRTUAL_H / 2 - 40);
+    }
+
+    if (state === 'over') {
+      drawGameOver();
+    }
+
+    ctx.restore();
+  }
+
+  function drawBg(x, y, w, h) {
+    // Gambar bg dengan cover sederhana
+    // Asumsikan bg.jpg sudah 9:16-ish; kalau tidak, tetap cover
+    const img = bgImg;
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    if (!iw || !ih) return;
+    const targetAR = w / h;
+    const imgAR = iw / ih;
+    let dw, dh, dx, dy;
+    if (imgAR > targetAR) {
+      // image lebih lebar
+      dh = h; dw = dh * imgAR;
+      dx = x - (dw - w) / 2; dy = y;
+    } else {
+      // image lebih tinggi
+      dw = w; dh = dw / imgAR;
+      dx = x; dy = y - (dh - h) / 2;
+    }
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  // Footer + tombol portfolio
+  const portfolioBtn = { x: VIRTUAL_W - 116, y: 16, w: 100, h: 30 };
+  function drawFooterAndPortfolio() {
+    // footer text
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.fillRect(0, VIRTUAL_H - 28, VIRTUAL_W, 28);
+    ctx.fillStyle = '#98a2b3';
+    ctx.font = '500 12px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Azbry-MD • FebryWesker', 12, VIRTUAL_H - 10);
+
+    // tombol portfolio (pojok kanan atas)
+    ctx.fillStyle = 'rgba(184,255,154,.15)';
+    roundRect(ctx, portfolioBtn.x, portfolioBtn.y, portfolioBtn.w, portfolioBtn.h, 8, true);
+    ctx.strokeStyle = 'rgba(184,255,154,.35)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, portfolioBtn.x, portfolioBtn.y, portfolioBtn.w, portfolioBtn.h, 8, false);
+    ctx.fillStyle = '#dfffe0';
+    ctx.font = '700 12px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Portfolio', portfolioBtn.x + portfolioBtn.w / 2, portfolioBtn.y + 20);
+  }
+
+  canvas.addEventListener('click', (e) => {
+    const { px, py } = pointerPos(e);
+    const v = toVirtual(px, py);
+    if (pointInRect(v.x, v.y, portfolioBtn)) {
+      window.open('https://azbry-portofolio.vercel.app/', '_blank');
+    }
+  });
+  canvas.addEventListener('touchend', (e) => {
+    const { px, py } = pointerPos(e);
+    const v = toVirtual(px, py);
+    if (pointInRect(v.x, v.y, portfolioBtn)) {
+      // sedikit delay agar tidak bentrok dengan tap jump
+      setTimeout(() => window.open('https://azbry-portofolio.vercel.app/', '_blank'), 60);
+    }
+  }, { passive: true });
+
+  function pointInRect(x, y, r) {
+    return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+  }
+  function roundRect(c, x, y, w, h, r, fill = true) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    if (fill) c.fill(); else c.stroke();
+  }
+
+  function drawGameOver() {
+    // Overlay
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.fillRect(0, 0, VIRTUAL_W, VIRTUAL_H);
+
+    // Card
+    const cw = 280, ch = 180;
+    const cx = (VIRTUAL_W - cw) / 2, cy = (VIRTUAL_H - ch) / 2;
+    ctx.fillStyle = '#111418';
+    roundRect(ctx, cx, cy, cw, ch, 14, true);
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, cx, cy, cw, ch, 14, false);
+
+    ctx.fillStyle = '#e6e8ec';
+    ctx.font = '700 20px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Game Over', cx + cw / 2, cy + 36);
+
+    ctx.font = '600 14px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#98a2b3';
+    ctx.fillText(`Skor: ${score} • Terbaik: ${best}`, cx + cw / 2, cy + 62);
+
+    // Pesan hadiah
+    ctx.font = '600 13px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#dfffe0';
+    const msg = `Ayo coba lagi!\nCapai ${REWARD_SCORE} poin untuk 1× Nasi Uduk\nMama Alpi 🍚`;
+    drawMultiline(ctx, msg, cx + cw / 2, cy + 92, 16);
+
+    // Tombol restart
+    const bw = 130, bh = 36;
+    const bx = cx + (cw - bw) / 2, by = cy + ch - bh - 14;
+    ctx.fillStyle = 'rgba(184,255,154,.16)';
+    roundRect(ctx, bx, by, bw, bh, 10, true);
+    ctx.strokeStyle = 'rgba(184,255,154,.35)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, bx, by, bw, bh, 10, false);
+
+    ctx.fillStyle = '#dfffe0';
+    ctx.font = '700 14px Inter, system-ui, sans-serif';
+    ctx.fillText('Main Lagi', bx + bw / 2, by + 24);
+
+    // Simpan area tombol restart utk klik
+    restartBtnRect = { x: bx, y: by, w: bw, h: bh };
+  }
+
+  // Multiline helper
+  function drawMultiline(c, text, x, y, lineH) {
+    const lines = text.split('\n');
+    lines.forEach((ln, i) => c.fillText(ln, x, y + i * lineH));
+  }
+
+  // Restart button hitbox
+  let restartBtnRect = null;
+  function isInsideRestart(px, py) {
+    if (!restartBtnRect) return false;
+    const v = toVirtual(px, py);
+    const r = restartBtnRect;
+    return v.x >= r.x && v.x <= r.x + r.w && v.y >= r.y && v.y <= r.y + r.h;
+  }
+
+  // ========= Loop =========
+  function loop(ts) {
+    const dt = Math.min(32, ts - (lastTime || ts));
+    lastTime = ts;
 
     update(dt);
-
-    // gambar
-    drawBackground();
-    drawPipes();
-    drawBird();
-    drawHUD();
-
-    if (gameOver) {
-      drawGameOver();
-      return; // berhenti sampai user restart
-    }
-
-    requestAnimationFrame(loop);
-  } catch (err) {
-    dbg('Loop crash: ' + (err?.message || err));
-    // coba terus agar tidak jadi layar hitam permanen
+    draw();
     requestAnimationFrame(loop);
   }
-}
-
-/* ---- Mulai game saat halaman siap ---- */
-window.addEventListener('load', () => {
-  // Mulai pada kondisi menunggu tap pertama (running masih false)
-  // biar user sadar perlu tap.
-  ctx.fillStyle = '#0b0d10';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#e6e8ec';
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 20px Inter, system-ui, sans-serif';
-  ctx.fillText('Tap untuk mulai', canvas.width / 2, canvas.height / 2);
-});
+  requestAnimationFrame(loop);
+})();
