@@ -1,258 +1,179 @@
-// ===== AZBRY-MD MINIGAME =====
-// by FebryWesker
+// Azbry-MD MiniGame — by FebryWesker
+// Tema: City Night | Reward: Nasi Uduk Mama Alpi 🍚
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const WIDTH = 360;
-const HEIGHT = 640;
-canvas.width = WIDTH;
-canvas.height = HEIGHT;
+// Responsive 9:16 layout
+canvas.width = 360;
+canvas.height = 640;
 
-// === KONSTANTA GAME ===
-const GRAVITY = 0.30;        // lebih kecil = jatuh lebih pelan
-const JUMP_VELOCITY = -8.2;  // sedikit lebih lemah biar loncatnya pas
-const PIPE_SPEED = 2.5;      // turunin biar gerakan pipa lebih pelan
-const GAP_HEIGHT = 160;      // celah antar pipa sedikit lebih lebar
-const PIPE_WIDTH = 55;       // lebar pipa agak besar biar enak dihindarin
-const PIPE_SPACING = 600;    // jarak antar pipa lebih jauh
-const REWARD_SCORE = 5; // ubah ke 50 kalau sudah stabil
+// ===== SETTINGS =====
+const GRAVITY = 0.30;
+const JUMP_VELOCITY = -8.2;
+const PIPE_SPEED = 2.5;
+const GAP_HEIGHT = 160;
+const PIPE_WIDTH = 55;
+const PIPE_SPACING = 600;
 
-// === ASSET ===
+// ===== IMAGES =====
 const birdImg = new Image();
 birdImg.src = "assets/img/bird.png";
+
 const bgImg = new Image();
 bgImg.src = "assets/img/bg-city.png";
 
-// === VARIABEL GAME ===
-let bird = { x: 80, y: HEIGHT / 2, w: 34, h: 26, vel: 0 };
+// ===== VARIABLES =====
+let birdY = canvas.height / 2;
+let birdVel = 0;
 let pipes = [];
 let score = 0;
 let gameOver = false;
-let btnRect = null;
 
-// === EVENT HANDLER ===
-canvas.addEventListener("click", (e) => onPointer(getPointerPos(e)));
-canvas.addEventListener(
-  "touchstart",
-  (e) => {
-    onPointer(getPointerPos(e));
-    e.preventDefault();
-  },
-  { passive: false }
-);
-
-function getPointerPos(evt) {
-  const e = evt.touches ? evt.touches[0] : evt;
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  return {
-    x: (e.clientX - rect.left) * scaleX,
-    y: (e.clientY - rect.top) * scaleY,
-  };
+// ===== EVENT HANDLERS =====
+function jump() {
+  if (!gameOver) {
+    birdVel = JUMP_VELOCITY;
+  } else {
+    // klik di area tombol "Main Lagi"
+    const rect = canvas.getBoundingClientRect();
+    canvas.addEventListener("click", restart, { once: true });
+  }
 }
 
-function onPointer(pos) {
-  if (gameOver && btnRect) {
-    if (
-      pos.x >= btnRect.x &&
-      pos.x <= btnRect.x + btnRect.w &&
-      pos.y >= btnRect.y &&
-      pos.y <= btnRect.y + btnRect.h
-    ) {
-      restartGame();
-      return;
+document.addEventListener("mousedown", jump);
+document.addEventListener("touchstart", jump);
+
+// ===== PIPE LOGIC =====
+function createPipe(xOffset = 0) {
+  const topHeight = Math.random() * (canvas.height / 2);
+  const bottomY = topHeight + GAP_HEIGHT;
+  pipes.push({ x: canvas.width + xOffset, topHeight, bottomY });
+}
+
+for (let i = 0; i < 3; i++) createPipe(i * PIPE_SPACING);
+
+// ===== DRAW FUNCTION =====
+function draw() {
+  // background
+  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+  // pipes
+  ctx.fillStyle = "#2e3b2f";
+  pipes.forEach(p => {
+    ctx.fillRect(p.x, 0, PIPE_WIDTH, p.topHeight);
+    ctx.fillRect(p.x, p.bottomY, PIPE_WIDTH, canvas.height - p.bottomY);
+    ctx.strokeStyle = "#8ee887";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(p.x, 0, PIPE_WIDTH, p.topHeight);
+    ctx.strokeRect(p.x, p.bottomY, PIPE_WIDTH, canvas.height - p.bottomY);
+  });
+
+  // bird
+  ctx.drawImage(birdImg, 50, birdY, 40, 40);
+
+  // score
+  ctx.fillStyle = "#b8ff9a";
+  ctx.font = "bold 28px Inter";
+  ctx.fillText(score, canvas.width / 2, 80);
+
+  // credit
+  ctx.font = "14px Inter";
+  ctx.fillStyle = "#98a2b3";
+  ctx.textAlign = "center";
+  ctx.fillText("Azbry-MD • FebryWesker", canvas.width / 2, canvas.height - 12);
+}
+
+// ===== UPDATE FUNCTION =====
+function update() {
+  if (!gameOver) {
+    birdVel += GRAVITY;
+    birdY += birdVel;
+
+    pipes.forEach(p => {
+      p.x -= PIPE_SPEED;
+
+      // reset pipe
+      if (p.x + PIPE_WIDTH < 0) {
+        pipes.shift();
+        createPipe();
+        score++;
+      }
+
+      // collision
+      if (
+        50 + 40 > p.x &&
+        50 < p.x + PIPE_WIDTH &&
+        (birdY < p.topHeight || birdY + 40 > p.bottomY)
+      ) {
+        gameOver = true;
+      }
+    });
+
+    if (birdY + 40 > canvas.height || birdY < 0) {
+      gameOver = true;
     }
   }
-  if (!gameOver) flap();
 }
 
-function flap() {
-  bird.vel = JUMP_VELOCITY;
+// ===== GAME OVER SCREEN =====
+function renderGameOver() {
+  ctx.fillStyle = "rgba(0,0,0,0.65)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 46px Inter";
+  ctx.textAlign = "center";
+  ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 60);
+
+  ctx.font = "18px Inter";
+  ctx.fillStyle = "#b8ff9a";
+  ctx.fillText(
+    "Selesaikan 50 poin dan dapatkan reward x1 Nasi Uduk Mama Alpi",
+    canvas.width / 2,
+    canvas.height / 2 - 20
+  );
+
+  // tombol main lagi
+  const btnW = 160, btnH = 46;
+  const btnX = canvas.width / 2 - btnW / 2;
+  const btnY = canvas.height / 2 + 30;
+
+  ctx.fillStyle = "#8ee887";
+  ctx.fillRect(btnX, btnY, btnW, btnH);
+  ctx.fillStyle = "#0b0d10";
+  ctx.font = "bold 22px Inter";
+  ctx.fillText("Main Lagi", canvas.width / 2, btnY + 30);
+
+  canvas.addEventListener("click", function clickHandler(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (x >= btnX && x <= btnX + btnW && y >= btnY && y <= btnY + btnH) {
+      canvas.removeEventListener("click", clickHandler);
+      restart();
+    }
+  });
 }
 
-// === RESET GAME ===
-function restartGame() {
-  bird = { x: 80, y: HEIGHT / 2, w: 34, h: 26, vel: 0 };
+// ===== RESTART =====
+function restart() {
+  birdY = canvas.height / 2;
+  birdVel = 0;
   pipes = [];
   score = 0;
   gameOver = false;
-  btnRect = null;
-  loop();
+  for (let i = 0; i < 3; i++) createPipe(i * PIPE_SPACING);
 }
 
-// === PIPE GENERATOR ===
-function spawnPipe() {
-  const top = Math.random() * (HEIGHT - GAP_HEIGHT - 200) + 50;
-  pipes.push({
-    x: WIDTH,
-    topHeight: top,
-    bottomY: top + GAP_HEIGHT,
-    counted: false,
-  });
-}
-
-// === LOGIKA GAME ===
-let lastSpawn = 0;
-function update(dt) {
-  bird.vel += GRAVITY;
-  bird.y += bird.vel;
-
-  // cek tabrakan tanah / langit
-  if (bird.y + bird.h > HEIGHT || bird.y < 0) {
-    gameOver = true;
-  }
-
-  // spawn pipe
-  if (performance.now() - lastSpawn > PIPE_SPACING / PIPE_SPEED * 16) {
-    spawnPipe();
-    lastSpawn = performance.now();
-  }
-
-  // update pipe
-  for (let i = pipes.length - 1; i >= 0; i--) {
-    const p = pipes[i];
-    p.x -= PIPE_SPEED;
-
-    // tabrakan
-    if (
-      bird.x + bird.w > p.x &&
-      bird.x < p.x + PIPE_WIDTH &&
-      (bird.y < p.topHeight || bird.y + bird.h > p.bottomY)
-    ) {
-      gameOver = true;
-    }
-
-    // skor
-    if (!p.counted && p.x + PIPE_WIDTH < bird.x) {
-      score++;
-      p.counted = true;
-    }
-
-    if (p.x + PIPE_WIDTH < 0) pipes.splice(i, 1);
-  }
-}
-
-// === RENDER ===
-function draw() {
-  // latar
-  ctx.drawImage(bgImg, 0, 0, WIDTH, HEIGHT);
-
-  // burung
-  ctx.drawImage(birdImg, bird.x, bird.y, bird.w, bird.h);
-
-  // pipa
-  ctx.fillStyle = "#6aff6a";
-  pipes.forEach((p) => {
-    ctx.fillRect(p.x, 0, PIPE_WIDTH, p.topHeight);
-    ctx.fillRect(p.x, p.bottomY, PIPE_WIDTH, HEIGHT - p.bottomY);
-  });
-
-  // skor
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 24px Inter, system-ui, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText(`Score: ${score}`, 16, 32);
-
-  // credit di bawah
-  ctx.font = "13px Inter, system-ui, sans-serif";
-  ctx.fillStyle = "rgba(200,200,200,0.8)";
-  ctx.textAlign = "left";
-  ctx.fillText("Azbry-MD • FebryWesker", 12, HEIGHT - 12);
-
-  // tombol portofolio kanan bawah
-  const linkW = 120,
-    linkH = 28;
-  const lx = WIDTH - linkW - 12,
-    ly = HEIGHT - linkH - 12;
-  ctx.fillStyle = "rgba(184,255,154,0.9)";
-  ctx.fillRect(lx, ly, linkW, linkH);
-  ctx.fillStyle = "#0b0d10";
-  ctx.font = "bold 13px Inter, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("Portofolio", lx + linkW / 2, ly + linkH / 2);
-
-  // deteksi klik link
-  linkRect = { x: lx, y: ly, w: linkW, h: linkH };
-
-  if (gameOver) renderGameOver(ctx);
-}
-
-// === RENDER GAME OVER ===
-function renderGameOver(ctx) {
-  ctx.save();
-
-  ctx.fillStyle = "rgba(0,0,0,0.6)";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 42px Inter, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("GAME OVER", WIDTH / 2, HEIGHT * 0.38);
-
-  ctx.fillStyle = "#cfd6dd";
-  ctx.font = "600 16px Inter, system-ui, sans-serif";
-  ctx.fillText(
-    `Ayo coba lagi! Capai ${REWARD_SCORE} skor dan dapatkan x1 Nasi Uduk Mama Alpi 🍚`,
-    WIDTH / 2,
-    HEIGHT * 0.46
-  );
-
-  const cx = WIDTH / 2;
-  const cy = HEIGHT * 0.62;
-  const BTN_W = 220;
-  const BTN_H = 56;
-  const radius = 12;
-  btnRect = { x: cx - BTN_W / 2, y: cy - BTN_H / 2, w: BTN_W, h: BTN_H };
-
-  ctx.beginPath();
-  ctx.moveTo(btnRect.x + radius, btnRect.y);
-  ctx.arcTo(btnRect.x + BTN_W, btnRect.y, btnRect.x + BTN_W, btnRect.y + BTN_H, radius);
-  ctx.arcTo(btnRect.x + BTN_W, btnRect.y + BTN_H, btnRect.x, btnRect.y + BTN_H, radius);
-  ctx.arcTo(btnRect.x, btnRect.y + BTN_H, btnRect.x, btnRect.y, radius);
-  ctx.arcTo(btnRect.x, btnRect.y, btnRect.x + BTN_W, btnRect.y, radius);
-  ctx.closePath();
-
-  ctx.fillStyle = "#b8ff9a";
-  ctx.strokeStyle = "rgba(0,0,0,.18)";
-  ctx.lineWidth = 1.5;
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = "#0b0d10";
-  ctx.font = "bold 18px Inter, system-ui, sans-serif";
-  ctx.fillText("Main Lagi", cx, cy);
-
-  ctx.restore();
-}
-
-// === LOOP ===
-let last = 0;
-function loop(ts) {
-  const dt = ts - last;
-  last = ts;
-  if (!gameOver) update(dt);
+// ===== LOOP =====
+function loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   draw();
+  update();
+  if (gameOver) renderGameOver();
   requestAnimationFrame(loop);
 }
 
-// === KLIK PORTOFOLIO ===
-canvas.addEventListener("click", (e) => {
-  const pos = getPointerPos(e);
-  if (
-    linkRect &&
-    pos.x >= linkRect.x &&
-    pos.x <= linkRect.x + linkRect.w &&
-    pos.y >= linkRect.y &&
-    pos.y <= linkRect.y + linkRect.h
-  ) {
-    window.open("https://azbry-portofolio.vercel.app/", "_blank");
-  }
-});
-
-// === MULAI ===
-spawnPipe();
 loop();
