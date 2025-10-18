@@ -5,13 +5,13 @@
 
 (() => {
   // ====== KONFIGURASI GAME (gunakan setelanmu) ======
-  const GRAVITY       = 0.30;  // jatuh lebih pelan
-  const JUMP_VELOCITY = -8.2;  // dorongan loncat
+  const GRAVITY       = 0.33;  // jatuh lebih pelan
+  const JUMP_VELOCITY = -7.2;  // dorongan loncat
   const PIPE_SPEED    = 2.5;   // kecepatan pipa
   const GAP_HEIGHT    = 160;   // celah
-  const PIPE_WIDTH    = 55;    // lebar pipa
+  const PIPE_WIDTH    = 60;    // lebar pipa
   const PIPE_SPACING  = 600;   // jarak antar pipa
-  const REWARD_SCORE  = 50;    // ambang reward (teks di Game Over)
+  const REWARD_SCORE  = 5;    // ambang reward (teks di Game Over)
 
   // ====== KANVAS & SKALA 9:16 ======
   const canvas = document.getElementById('game');
