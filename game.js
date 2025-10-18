@@ -28,14 +28,14 @@ let highScore = parseInt(localStorage.getItem('azbry_highscore') || '0', 10);
 const player = { x: 70, y: H/2, r: 18, vy: 0, gravity: 0.28, jump: -8.2, img: null };
 
 // ===== Background =====
-const bg = { img: null, x1: 0, x2: W, speed: 1.2 };
+const bg = { img: null, x1: 0, x2: W, speed: 0.6 };
 
 // ===== Obstacles =====
 const obstacles = [];
 const OBST_GAP = 150;
 const OBST_WIDTH = 50;
 const OBST_MIN = 60;
-const OBST_SPEED = 3.2;
+const OBST_SPEED = 2.0;
 const SPAWN_EVERY = 1200;
 let lastSpawn = 0;
 
