@@ -1,18 +1,18 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-const GRAVITY = 0.25;
-const JUMP_VELOCITY = -5.6;
-const PIPE_SPEED = 2.8;
-const GAP_HEIGHT = 150;
-const PIPE_WIDTH = 57;
-const PIPE_SPACING = 500;
+const GRAVITY = 0.30;        // lebih kecil = jatuh lebih pelan
+const JUMP_VELOCITY = -8.2;  // sedikit lebih lemah biar loncatnya pas
+const PIPE_SPEED = 2.5;      // turunin biar gerakan pipa lebih pelan
+const GAP_HEIGHT = 160;      // celah antar pipa sedikit lebih lebar
+const PIPE_WIDTH = 55;       // lebar pipa agak besar biar enak dihindarin
+const PIPE_SPACING = 600;    // jarak antar pipa lebih jauh
 
 const birdImg = new Image();
-birdImg.src = "assets/bird.png";
+birdImg.src = "assets/img/bird.png";
 
 const bgImg = new Image();
-bgImg.src = "assets/bg.png";
+bgImg.src = "assets/img/bg.png";
 
 let bird = { x: 80, y: 200, width: 34, height: 24, velocity: 0 };
 let pipes = [];
