@@ -11,7 +11,7 @@
   const GAP_HEIGHT    = 160;   // celah
   const PIPE_WIDTH    = 60;    // lebar pipa
   const PIPE_SPACING  = 600;   // jarak antar pipa
-  const REWARD_SCORE  = 5;    // ambang reward (teks di Game Over)
+  const REWARD_SCORE  = 50;    // ambang reward (teks di Game Over)
 
   // ====== KANVAS & SKALA 9:16 ======
   const canvas = document.getElementById('game');
@@ -117,7 +117,7 @@
     <div id="overScore" style="color:#aeb6c2; font-weight:700; margin-bottom:10px">Score: 0 • Highscore: 0</div>
     <div style="color:#cfead1; background:rgba(184,255,154,.07); border:1px solid rgba(184,255,154,.25);
                 padding:10px; border-radius:12px; margin-bottom:14px">
-      Selesaikan <b>${REWARD_SCORE}</b> poin dan dapatkan reward <b>×1 Nasi Uduk Mama Alpi</b> 🍚
+      Selesaikan <b>${REWARD_SCORE}</b> poin dan dapatkan reward <b>    ×1 Nasi Uduk Mama Alpi</b> 🍚
     </div>
     <button id="btnRetry" style="
       background:linear-gradient(180deg,#b8ff9a,#8ee887); color:#0b0d10;
