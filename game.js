@@ -2,12 +2,12 @@
 const CANVAS_W = 360;
 const CANVAS_H = 640;
 
-const GRAVITY = 0.32;
+const GRAVITY = 0.25;
 const JUMP_VELOCITY = -7.6;
-const PIPE_SPEED = 2.0;
+const PIPE_SPEED = 2.8;
 const GAP_HEIGHT = 150;
-const PIPE_WIDTH = 52;
-const PIPE_SPACING = 1000;
+const PIPE_WIDTH = 57;
+const PIPE_SPACING = 500;
 
 const REWARD_TARGET = 5;
 
