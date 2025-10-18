@@ -3,13 +3,13 @@ const CANVAS_W = 360;
 const CANVAS_H = 640;
 
 const GRAVITY = 0.30;        // lebih kecil = jatuh lebih pelan
-const JUMP_VELOCITY = -7.2;  // sedikit lebih lemah biar loncatnya pas
+const JUMP_VELOCITY = -9.2;  // sedikit lebih lemah biar loncatnya pas
 const PIPE_SPEED = 2.0;      // turunin biar gerakan pipa lebih pelan
 const GAP_HEIGHT = 180;      // celah antar pipa sedikit lebih lebar
 const PIPE_WIDTH = 60;       // lebar pipa agak besar biar enak dihindarin
 const PIPE_SPACING = 600;    // jarak antar pipa lebih jauh
 
-const REWARD_TARGET = 5;
+const REWARD_TARGET = 50;
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
