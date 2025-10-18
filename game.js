@@ -2,12 +2,12 @@
 const CANVAS_W = 360;
 const CANVAS_H = 640;
 
-const GRAVITY = 0.25;
-const JUMP_VELOCITY = -7.6;
-const PIPE_SPEED = 2.8;
-const GAP_HEIGHT = 150;
-const PIPE_WIDTH = 57;
-const PIPE_SPACING = 500;
+const GRAVITY = 0.22;        // lebih kecil = jatuh lebih pelan
+const JUMP_VELOCITY = -5.4;  // sedikit lebih lemah biar loncatnya pas
+const PIPE_SPEED = 2.0;      // turunin biar gerakan pipa lebih pelan
+const GAP_HEIGHT = 180;      // celah antar pipa sedikit lebih lebar
+const PIPE_WIDTH = 60;       // lebar pipa agak besar biar enak dihindarin
+const PIPE_SPACING = 600;    // jarak antar pipa lebih jauh
 
 const REWARD_TARGET = 5;
 
