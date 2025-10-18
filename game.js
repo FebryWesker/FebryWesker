@@ -2,14 +2,14 @@
 const CANVAS_W = 360;
 const CANVAS_H = 640;
 
-const GRAVITY = 0.42;
+const GRAVITY = 0.32;
 const JUMP_VELOCITY = -7.6;
-const PIPE_SPEED = 2.6;
+const PIPE_SPEED = 2.0;
 const GAP_HEIGHT = 150;
-const PIPE_WIDTH = 56;
-const PIPE_SPACING = 220;
+const PIPE_WIDTH = 52;
+const PIPE_SPACING = 1000;
 
-const REWARD_TARGET = 50;
+const REWARD_TARGET = 5;
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
