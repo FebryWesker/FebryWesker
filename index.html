@@ -2,369 +2,300 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Azbry Tap Runner</title>
-<meta name="theme-color" content="#0b0d10">
 <style>
   :root{
-    --bg:#0b0d10;        /* latar gelap */
-    --ink:#e6e8ec;       /* teks */
-    --muted:#9aa3af;     /* teks sekunder */
-    --panel:#111418;     /* panel ui */
-    --pipe:#1a2127;      /* rintangan */
-    --accent:#b8ff9a;    /* hijau neon */
-    --accent2:#84eb7c;
-    --ring:rgba(184,255,154,.22);
+    --bg:#0b0d10; --panel:#111418; --muted:#9aa3b2; --text:#e7eaee;
+    --accent:#b8ff9a; --accent2:#8ee887;
   }
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;overscroll-behavior:none}
-  .wrap{position:fixed;inset:0;display:flex;flex-direction:column}
-  header{
-    position:fixed;left:0;right:0;top:0;padding:10px 14px;
-    display:flex;justify-content:space-between;align-items:center;
-    background:linear-gradient(180deg,rgba(0,0,0,.42),transparent);
-    pointer-events:none;z-index:2
-  }
-  header .title{font-weight:800;letter-spacing:.3px;text-shadow:0 2px 10px rgba(0,0,0,.5)}
-  header .badges{display:flex;gap:8px}
-  .badge{
-    pointer-events:auto;user-select:none;
-    display:inline-flex;align-items:center;gap:8px;
-    padding:8px 12px;border-radius:999px;background:rgba(184,255,154,.08);
-    border:1px solid var(--ring);color:#dfffe0;font-weight:700;font-size:12px;
-    text-transform:uppercase;letter-spacing:.35px;backdrop-filter:blur(6px)
-  }
-  canvas{width:100vw;height:100vh;touch-action:none;display:block}
-  .hud{
-    position:fixed;left:0;right:0;bottom:0;padding:12px;
-    display:flex;justify-content:space-between;align-items:center;gap:10px;
-    pointer-events:none;z-index:2;background:linear-gradient(0deg,rgba(0,0,0,.42),transparent)
-  }
-  .pill{
-    pointer-events:auto;
-    background:var(--panel);border:1px solid rgba(255,255,255,.06);
-    color:var(--ink);border-radius:12px;padding:10px 14px;font-weight:700;
-    box-shadow:0 8px 30px rgba(0,0,0,.35)
-  }
-  .btn{
-    pointer-events:auto;cursor:pointer;user-select:none;
-    background:linear-gradient(180deg,var(--accent),var(--accent2));
-    color:#0b0d10;border:0;border-radius:12px;font-weight:800;
-    padding:12px 16px;box-shadow:0 10px 30px rgba(184,255,154,.28), inset 0 0 0 1px rgba(0,0,0,.15);
-    transition:transform .08s ease,opacity .2s ease
-  }
-  .btn:active{transform:translateY(1px);opacity:.9}
-  .overlay{
-    position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    background:radial-gradient(1000px 700px at 20% -10%,rgba(184,255,154,.06),transparent 40%),
-               radial-gradient(1000px 700px at 120% 30%,rgba(184,255,154,.04),transparent 35%);
-    text-align:center;padding:24px;gap:16px;z-index:3
-  }
-  .card{
-    background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:16px;
-    padding:18px 16px;max-width:560px;box-shadow:0 10px 40px rgba(0,0,0,.4)
-  }
-  .title2{font-size:clamp(20px,4vw,28px);font-weight:900;margin:0}
-  .muted{color:var(--muted)}
-  .grid{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-  .hidden{display:none}
+  html,body{margin:0;height:100%;background:#0b0d10;color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+  #wrap{max-width:700px;margin:0 auto;padding:10px 12px}
+  h1{margin:6px 0 8px;font-size:18px;font-weight:800;letter-spacing:.3px}
+  .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:10px 12px}
+  canvas{display:block;width:100%;height:auto;border-radius:12px;background:#0b0d10;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  .hint{margin-top:8px;color:var(--muted);font-size:12px}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="title">Azbry Tap Runner</div>
-      <div class="badges">
-        <div class="badge">Mini Game • Azbry-MD</div>
-      </div>
-    </header>
-
-    <canvas id="game" aria-label="Azbry Tap Runner" role="img"></canvas>
-
-    <div class="hud">
-      <div class="pill" id="score">Skor: 0</div>
-      <div class="grid">
-        <button class="btn" id="btnTap" title="Tap / Space">TAP</button>
-        <button class="pill" id="btnPause">⏸️ Pause</button>
-        <button class="pill" id="btnReset">🔄 Reset</button>
-      </div>
-    </div>
-
-    <!-- Overlay Start / Game Over -->
-    <div class="overlay" id="overlay">
-      <div class="card">
-        <h2 class="title2" id="title">Selamat datang di Azbry Tap Runner</h2>
-        <p class="muted" id="desc">
-          Ketuk layar (atau tombol <b>TAP</b>) untuk terbang. Hindari “bug obstacles”.
-          Fokus: simpel, lancar di HP, tema Azbry-MD. Good luck! ✨
-        </p>
-        <p id="best" class="muted">High Score: 0</p>
-        <div class="grid">
-          <button class="btn" id="btnPlay">Mulai</button>
-        </div>
-      </div>
+  <div id="wrap">
+    <div class="card">
+      <h1>Azbry Tap Runner</h1>
+      <canvas id="game" width="720" height="420"></canvas>
+      <div class="hint">Tap layar / klik / tekan spasi untuk lompat. Capai skor 100!</div>
     </div>
   </div>
 
 <script>
-(()=>{
+(() => {
+  // ==== Assets (sesuai link yang kamu kasih)
+  const BIRD_SRC = "https://files.catbox.moe/9whqg7.jpg";
+  const BG_SRC   = "https://files.catbox.moe/0ub3wk.jpg";
 
-  // ====== Canvas bootstrap (retina crisp) ======
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); // biar hemat
+
+  // --- ukuran dinamis (rasio 720x420)
   function fit() {
-    const w = Math.floor(innerWidth * DPR);
-    const h = Math.floor(innerHeight * DPR);
-    canvas.width = w; canvas.height = h;
-    canvas.style.width = innerWidth + 'px';
-    canvas.style.height = innerHeight + 'px';
+    const w = canvas.parentElement.clientWidth;
+    const scale = Math.min(1, w/720);
+    canvas.style.width = (720*scale)+'px';
+    canvas.style.height = (420*scale)+'px';
   }
-  addEventListener('resize', fit, {passive:true});
-  fit();
+  addEventListener('resize', fit); fit();
 
-  // ====== Game state ======
-  const State = { READY:0, PLAY:1, PAUSE:2, GAMEOVER:3 };
-  let state = State.READY;
-
-  // world config  (pakai satuan px/ms)
-const G = 0.0030;       // gravitasi (lebih besar → jatuh lebih cepat)
-const JUMP = -0.95;     // ke atas saat tap (lebih negatif → lompatan lebih tinggi)
-const PIPE_GAP = 220*DPR;
-const PIPE_W   = 90*DPR;
-const PIPE_DIST= 340*DPR;
-const SPEED    = 0.25;  // kecepatan gerak world (px/ms)
+  // ==== Game state
+  let running = true, gameOver = false, score = 0, best = 0;
+  const G = 0.65;       // gravitasi
+  const JUMP = -10.2;   // power lompatan
+  const FLOOR_H = 56;   // tinggi lantai
+  const SPEED = 4;      // kecepatan scroll
+  let t = 0;
 
   // player
-  const player = { x: 0, y: 0, r: 18*DPR, vy:0, alive:true };
-  function resetPlayer(){
-    player.x = canvas.width * 0.28;
-    player.y = canvas.height * 0.5;
+  const player = {
+    x: 90, y: 0, w: 44, h: 44, vy: 0,
+    sprite: new Image()
+  };
+  player.sprite.src = BIRD_SRC;
+
+  // background (parallax)
+  const bg = new Image(); bg.src = BG_SRC;
+  let bgX = 0, bgScale = 1;
+
+  // obstacles
+  const obstacles = [];
+  const SPAWN_EVERY = 90; // frame
+  const OB_W = 44, OB_H_MIN = 26, OB_H_MAX = 66;
+
+  // utils
+  const rnd = (a,b)=>Math.floor(a+Math.random()*(b-a+1));
+  const clamp = (v, a, b)=>Math.max(a,Math.min(b,v));
+
+  function reset() {
+    obstacles.length = 0;
+    score = 0; t = 0; bgX = 0;
+    player.y = canvas.height - FLOOR_H - player.h;
     player.vy = 0;
-    player.alive = true;
+    running = true; gameOver = false;
   }
+  reset();
 
-  // pipes
-  let pipes = [];
-  let lastPipeX = 0;
-
-  function spawnPipe(startX){
-    const h = canvas.height;
-    const mid = (0.25 + Math.random()*0.5) * h;
-    pipes.push({
-      x: startX,
-      top: mid - PIPE_GAP/2,
-      bottom: mid + PIPE_GAP/2,
-      passed:false
-    });
-  }
-
-  function resetWorld(){
-    pipes = [];
-    lastPipeX = canvas.width + 200*DPR;
-    for(let i=0;i<5;i++){
-      spawnPipe(lastPipeX);
-      lastPipeX += PIPE_DIST;
+  // input
+  function jump() {
+    if (!running) { reset(); return; }
+    if (gameOver)  { reset(); return; }
+    // bisa double-jump kecil (opsional)
+    if (player.y >= canvas.height - FLOOR_H - player.h - 2) {
+      player.vy = JUMP;
     }
   }
+  addEventListener('keydown', e => { if(e.code==='Space') { e.preventDefault(); jump(); }});
+  canvas.addEventListener('pointerdown', jump);
+  canvas.addEventListener('touchstart', e=>{ e.preventDefault(); jump(); }, {passive:false});
 
-  // score
-  let score = 0;
-  const scoreEl = document.getElementById('score');
-  const bestEl  = document.getElementById('best');
-  const HS_KEY = 'azbry_taprunner_hs';
-  let high = Number(localStorage.getItem(HS_KEY) || 0);
-  function setScore(s){ score = s; scoreEl.textContent = 'Skor: ' + score; }
-  function saveHigh(){ if(score>high){ high=score; localStorage.setItem(HS_KEY, String(high)); } bestEl.textContent='High Score: '+high; }
-  saveHigh();
+  // gambar lantai gelap
+  function drawFloor() {
+    const y = canvas.height - FLOOR_H;
+    // lantai …
+    const grad = ctx.createLinearGradient(0,y,0,canvas.height);
+    grad.addColorStop(0,'#0d1116');
+    grad.addColorStop(1,'#0a0d10');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, y, canvas.width, FLOOR_H);
 
-  // ====== Control ======
-  function flap(){
-    if(state===State.READY){ startGame(); return; }
-    if(state!==State.PLAY) return;
-    player.vy = JUMP;
-    // little pop effect
-    pulse(overlayBtnTap);
-  }
-
-  // simple scale pulse for UI button
-  function pulse(el){ if(!el) return; el.style.transform='scale(.98)'; setTimeout(()=>el.style.transform='',90); }
-
-  canvas.addEventListener('pointerdown', e=>{ e.preventDefault(); flap(); }, {passive:false});
-  document.getElementById('btnTap').addEventListener('click', flap);
-  addEventListener('keydown', e=>{
-    if(e.code==='Space'){ e.preventDefault(); flap(); }
-    if(e.key==='p') togglePause();
-    if(e.key==='r') resetAndReady();
-  }, {passive:false});
-
-  function togglePause(){
-    if(state===State.PLAY){ state=State.PAUSE; showOverlay('Paused','Ketuk “Lanjut” untuk melanjutkan.'); setBtnPlay('Lanjut'); }
-    else if(state===State.PAUSE){ hideOverlay(); state=State.PLAY; last = performance.now(); loop(last); }
-  }
-
-  // ====== Overlay UI ======
-  const overlay = document.getElementById('overlay');
-  const title   = document.getElementById('title');
-  const desc    = document.getElementById('desc');
-  const btnPlay = document.getElementById('btnPlay');
-  const overlayBtnTap = document.getElementById('btnTap');
-  const btnPause = document.getElementById('btnPause');
-  const btnReset = document.getElementById('btnReset');
-
-  btnPlay.addEventListener('click', ()=>{
-    if(state===State.READY || state===State.GAMEOVER) startGame();
-    else if(state===State.PAUSE) togglePause();
-  });
-  btnPause.addEventListener('click', togglePause);
-  btnReset.addEventListener('click', resetAndReady);
-
-  function setBtnPlay(text){ btnPlay.textContent=text; }
-  function showOverlay(t, d){
-    title.textContent = t;
-    desc.innerHTML    = d;
-    overlay.classList.remove('hidden');
-  }
-  function hideOverlay(){ overlay.classList.add('hidden'); }
-
-  function resetAndReady(){
-    state = State.READY;
-    resetPlayer(); resetWorld(); setScore(0); saveHigh();
-    setBtnPlay('Mulai'); showOverlay('Selamat datang di Azbry Tap Runner',
-      'Ketuk layar atau tombol <b>TAP</b> untuk terbang. Hindari rintangan. Semoga menyenangkan! ✨');
-  }
-
-  function startGame(){
-    hideOverlay();
-    resetPlayer(); resetWorld(); setScore(0);
-    state = State.PLAY;
-    last = performance.now();
-    loop(last);
-  }
-
-  // initial
-  resetAndReady();
-
-  // ====== Game loop ======
-  let last = 0;
-  function loop(t){
-    if(state!==State.PLAY) return;
-    const dt = t - last; // ms
-    last = t;
-    update(dt);
-    draw();
-    requestAnimationFrame(loop);
-  }
-
-  function update(dt){
-    // player physics
-    player.vy += G * dt;
-    player.y  += player.vy * (dt);
-
-    // ground/ceiling
-    if(player.y - player.r < 0){ player.y = player.r; player.vy = 0; }
-    if(player.y + player.r > canvas.height){ player.y = canvas.height - player.r; die(); return; }
-
-    // pipes move
-    const dx = SPEED * dt * DPR;
-    for(const p of pipes){ p.x -= dx; }
-
-    // spawn new pipe if needed
-    if(pipes.length){
-      const lastPipe = pipes[pipes.length-1];
-      if(lastPipe.x < canvas.width - PIPE_DIST){ lastPipeX = lastPipe.x + PIPE_DIST; spawnPipe(lastPipeX); }
-    }
-
-    // remove off-screen
-    while(pipes.length && pipes[0].x+PIPE_W < -10*DPR) pipes.shift();
-
-    // collisions + score
-    for(const p of pipes){
-      // pass check
-      if(!p.passed && p.x + PIPE_W < player.x - player.r){
-        p.passed = true; setScore(score+1);
-      }
-      // collision
-      if(circleRect(player.x, player.y, player.r, p.x, 0, PIPE_W, p.top) ||
-         circleRect(player.x, player.y, player.r, p.x, p.bottom, PIPE_W, canvas.height - p.bottom)){
-        die(); return;
-      }
-    }
-  }
-
-  function draw(){
-    const w = canvas.width, h = canvas.height;
-
-    // background
-    const grd = ctx.createLinearGradient(0,0,0,h);
-    grd.addColorStop(0,'#0b0d10'); grd.addColorStop(1,'#0a0c0e');
-    ctx.fillStyle = grd; ctx.fillRect(0,0,w,h);
-
-    // subtle grid dots
-    ctx.fillStyle = 'rgba(184,255,154,.04)';
-    const step = 28*DPR;
-    for(let y= (last%step); y<h; y+=step){
-      for(let x= (last%step); x<w; x+=step){
-        ctx.fillRect(x,y,1,1);
-      }
-    }
-
-    // pipes
-    for(const p of pipes){
-      ctx.fillStyle = '#0f1317';
-      roundRect(ctx, p.x, 0, PIPE_W, p.top, 8*DPR); ctx.fill();
-      roundRect(ctx, p.x, p.bottom, PIPE_W, h - p.bottom, 8*DPR); ctx.fill();
-
-      // inner
-      ctx.fillStyle = 'rgba(184,255,154,.06)';
-      ctx.fillRect(p.x+8*DPR, 0, PIPE_W-16*DPR, p.top);
-      ctx.fillRect(p.x+8*DPR, p.bottom, PIPE_W-16*DPR, h - p.bottom);
-    }
-
-    // player (glow orb)
-    const r = player.r;
-    const g = ctx.createRadialGradient(player.x,player.y, r*.2, player.x,player.y, r*1.2);
-    g.addColorStop(0, '#b8ff9a'); g.addColorStop(.6, '#84eb7c'); g.addColorStop(1,'rgba(184,255,154,.0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(player.x,player.y,r,0,Math.PI*2); ctx.fill();
-
-    // core dot
-    ctx.fillStyle = '#0b0d10'; ctx.beginPath(); ctx.arc(player.x,player.y,r*.45,0,Math.PI*2); ctx.fill();
-
-    // score big
-    ctx.font = `${28*DPR}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = 'rgba(230,232,236,.8)';
-    ctx.textAlign = 'center'; ctx.fillText(score, w/2, 60*DPR);
-  }
-
-  // ====== Helpers ======
-  function circleRect(cx,cy,cr, rx,ry,rw,rh){
-    // nearest point
-    const nx = Math.max(rx, Math.min(cx, rx+rw));
-    const ny = Math.max(ry, Math.min(cy, ry+rh));
-    const dx = cx-nx, dy = cy-ny;
-    return (dx*dx + dy*dy) < cr*cr;
-  }
-
-  function roundRect(ctx,x,y,w,h,r){
-    const rr = Math.min(r, Math.abs(w)/2, Math.abs(h)/2);
+    // garis neon tipis di tepi atas lantai
+    ctx.strokeStyle = 'rgba(184,255,154,.28)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(x+rr,y);
-    ctx.arcTo(x+w,y,x+w,y+h,rr);
-    ctx.arcTo(x+w,y+h,x,y+h,rr);
-    ctx.arcTo(x,y+h,x,y,rr);
-    ctx.arcTo(x,y,x+w,y,rr);
+    ctx.moveTo(0, y + .5);
+    ctx.lineTo(canvas.width, y + .5);
+    ctx.stroke();
+  }
+
+  // rintangan panel neon elegan
+  function drawObstacle(o) {
+    const r = 8; // radius rounded
+    const x = o.x, y = o.y, w = o.w, h = o.h;
+
+    // fill lebih terang dari lantai
+    ctx.fillStyle = '#14181d';
+    roundRect(ctx, x, y, w, h, r); ctx.fill();
+
+    // border neon hijau + glow
+    ctx.save();
+    ctx.shadowColor = '#b8ff9a';
+    ctx.shadowBlur = 16;
+    ctx.strokeStyle = '#b8ff9a';
+    ctx.lineWidth = 2;
+    roundRect(ctx, x, y, w, h, r); ctx.stroke();
+    ctx.restore();
+
+    // garis dalam (aksen)
+    ctx.strokeStyle = 'rgba(184,255,154,.25)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, x+4, y+4, w-8, h-8, r-4); ctx.stroke();
+  }
+
+  function roundRect(ctx, x, y, w, h, r){
+    const rr = Math.max(0, Math.min(r, Math.min(w,h)/2));
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y, x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x, y+h, rr);
+    ctx.arcTo(x, y+h, x, y, rr);
+    ctx.arcTo(x, y, x+w, y, rr);
     ctx.closePath();
   }
 
-  function die(){
-  if(state!==State.PLAY) return;
-  state = State.GAMEOVER;
-  saveHigh();
-  showOverlay('Game Over',
-    `Skormu: <b>${score}</b><br>High Score: <b>${high}</b><br><br><b>Ayo coba lagi!</b><br>🎁 Dapatkan <b>100 skor</b> dan kamu boleh mengambil hadiah dari <b>Febry</b> 😎<br><br><span class="muted">Ketuk “Main lagi” untuk coba lagi.</span>`);
-  setBtnPlay('Main lagi');
+  function spawnObstacle() {
+    const h = rnd(OB_H_MIN, OB_H_MAX);
+    const y = canvas.height - FLOOR_H - h;
+    obstacles.push({ x: canvas.width + 10, y, w: OB_W, h });
   }
 
-})(); 
+  // collision AABB
+  function hit(a,b){
+    return !(a.x+a.w < b.x || a.x > b.x+b.w || a.y+a.h < b.y || a.y > b.y+b.h);
+  }
+
+  // main loop
+  function loop() {
+    requestAnimationFrame(loop);
+    if (!running) return;
+
+    t++;
+
+    // UPDATE
+    player.vy += G;
+    player.y += player.vy;
+    const groundY = canvas.height - FLOOR_H - player.h;
+    if (player.y > groundY) { player.y = groundY; player.vy = 0; }
+
+    // bg scroll (repeat)
+    bgScale = canvas.height / bg.height; // fit tinggi
+    const bgW = bg.width * bgScale;
+    bgX -= SPEED * 0.5;
+    if (bgX <= -bgW) bgX += bgW;
+
+    // spawn obstacle
+    if (t % SPAWN_EVERY === 0) spawnObstacle();
+
+    // move obstacles & score
+    for (let i=obstacles.length-1; i>=0; i--) {
+      const o = obstacles[i];
+      o.x -= SPEED;
+      if (o.x + o.w < 0) obstacles.splice(i,1);
+      if (!o.passed && o.x + o.w < player.x) { o.passed = true; score++; }
+    }
+
+    // collision
+    for (const o of obstacles) {
+      if (hit(player, o)) { endGame(); break; }
+    }
+
+    // DRAW
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // background (repeat)
+    const yBG = 0;
+    const bgW2 = bg.width * bgScale;
+    ctx.drawImage(bg, bgX, yBG, bgW2, canvas.height);
+    ctx.drawImage(bg, bgX + bgW2, yBG, bgW2, canvas.height);
+
+    // floor
+    drawFloor();
+
+    // obstacles
+    obstacles.forEach(drawObstacle);
+
+    // player
+    ctx.save();
+    // sedikit drop shadow biar pop
+    ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 10;
+    ctx.drawImage(player.sprite, player.x, Math.round(player.y), player.w, player.h);
+    ctx.restore();
+
+    // HUD
+    ctx.fillStyle = '#e7eaee';
+    ctx.font = '700 20px Inter, system-ui, sans-serif';
+    ctx.fillText(`Score: ${score}`, 16, 30);
+    ctx.fillStyle = '#9aa3b2';
+    ctx.font = '600 12px Inter, system-ui, sans-serif';
+    ctx.fillText(`Best: ${best}`, 16, 48);
+
+    // overlay game over
+    if (gameOver) drawGameOver();
+  }
+  requestAnimationFrame(loop);
+
+  function endGame() {
+    gameOver = true; running = true; // tetap render
+    best = Math.max(best, score);
+  }
+
+  function drawGameOver() {
+    // overlay gelap
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    const cx = canvas.width/2;
+
+    // panel
+    const W = Math.min(520, canvas.width-60), H = 170;
+    const X = cx - W/2, Y = canvas.height/2 - H/2;
+    ctx.fillStyle = '#111418';
+    ctx.strokeStyle = 'rgba(255,255,255,.09)';
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, X, Y, W, H, 14); ctx.fill(); ctx.stroke();
+
+    // judul & pesan
+    ctx.fillStyle = '#e7eaee';
+    ctx.font = '800 22px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Game Over', cx, Y+38);
+
+    ctx.fillStyle = '#9aa3b2';
+    ctx.font = '600 14px Inter, system-ui, sans-serif';
+    wrapText(`Ayo coba lagi! Dapatkan 100 score dan kamu boleh mengambil hadiah dari Febry.`,
+             cx, Y+68, W-40, 18);
+
+    // tombol ulang
+    const btnW=160, btnH=40, btnX=cx-btnW/2, btnY=Y+H-52;
+    // glow hijau
+    ctx.save();
+    ctx.shadowColor = '#b8ff9a'; ctx.shadowBlur = 16;
+    ctx.fillStyle = ctx.createLinearGradient(btnX,0,btnX+btnW,0);
+    ctx.fillStyle.addColorStop?.(0,'#b8ff9a'); // fallback kalau tidak ada addColorStop
+    try { const g=ctx.createLinearGradient(btnX,0,btnX+btnW,0); g.addColorStop(0,'#b8ff9a'); g.addColorStop(1,'#8ee887'); ctx.fillStyle=g; } catch{}
+    roundRect(ctx, btnX, btnY, btnW, btnH, 10); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#0b0d10';
+    ctx.font = '800 14px Inter, system-ui, sans-serif';
+    ctx.fillText('Main Lagi', cx, btnY+26);
+
+    // area klik
+    canvas.onclick = (e)=>{
+      if (!gameOver) return;
+      const rect = canvas.getBoundingClientRect();
+      const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const sy = (e.clientY - rect.top)  * (canvas.height / rect.height);
+      if (sx>=btnX && sx<=btnX+btnW && sy>=btnY && sy<=btnY+btnH) reset();
+    };
+  }
+
+  function wrapText(text, x, y, maxW, lh){
+    const words=text.split(' '); let line='', yy=y;
+    ctx.textAlign='center';
+    for(let n=0;n<words.length;n++){
+      const testLine=line+words[n]+' ';
+      const w=ctx.measureText(testLine).width;
+      if (w>maxW && n>0){ ctx.fillText(line.trim(), x, yy); line=words[n]+' '; yy+=lh; }
+      else line=testLine;
+    }
+    ctx.fillText(line.trim(), x, yy);
+  }
+})();
 </script>
 </body>
 </html>
