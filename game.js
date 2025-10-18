@@ -22,8 +22,8 @@ canvas.style.touchAction = 'none';
 // asset
 const birdImg = new Image();
 const bgImg = new Image();
-birdImg.src = './assets/bird.png';
-bgImg.src = './assets/bg-city.png';
+birdImg.src = './assets/img/bird.png';
+bgImg.src = './assets/img/bg-city.png';
 
 // state
 let started = false;
