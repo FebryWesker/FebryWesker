@@ -51,10 +51,10 @@
 
   // ========= Assets =========
   const birdImg = new Image();
-  birdImg.src = 'assets/bird.jpg';
+  birdImg.src = 'assets/img/bird.jpg';
 
   const bgImg = new Image();
-  bgImg.src = 'assets/bg.jpg';
+  bgImg.src = 'assets/img/bg.jpg';
 
   // ========= State =========
   let state = 'ready'; // 'ready' | 'playing' | 'over'
