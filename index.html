@@ -2,238 +2,369 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Azbry Runner — Mini Game</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Azbry Tap Runner</title>
+<meta name="theme-color" content="#0b0d10">
 <style>
   :root{
-    --bg:#0b0d10; --panel:#111418; --text:#e6e8ec;
-    --accent:#b8ff9a; --accent2:#8ee887;
+    --bg:#0b0d10;        /* latar gelap */
+    --ink:#e6e8ec;       /* teks */
+    --muted:#9aa3af;     /* teks sekunder */
+    --panel:#111418;     /* panel ui */
+    --pipe:#1a2127;      /* rintangan */
+    --accent:#b8ff9a;    /* hijau neon */
+    --accent2:#84eb7c;
+    --ring:rgba(184,255,154,.22);
   }
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
-    font:500 16px/1.4 Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
-  .wrap{max-width:920px;margin:0 auto;padding:18px}
-  .card{background:var(--panel);border:1px solid rgba(255,255,255,.06);
-    border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:14px}
-  h1{margin:.2rem 0 0;font-weight:800;letter-spacing:.3px}
-  .sub{opacity:.75}
-  .hud{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .tag{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;
-    background:rgba(184,255,154,.12); border:1px solid rgba(184,255,154,.25); font-size:12px;font-weight:800}
-  .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;
-    border:1px solid rgba(255,255,255,.1); background:transparent; color:var(--text); cursor:pointer}
-  .btn.primary{background:linear-gradient(180deg,var(--accent),var(--accent2));color:#0b0d10;border:0}
-  canvas{display:block;width:100%;height:auto;background:
-    radial-gradient(900px 600px at 120% 20%, rgba(184,255,154,.06), transparent 40%),
-    radial-gradient(700px 500px at 0% 100%, rgba(184,255,154,.04), transparent 35%),
-    #0c0f12;border-radius:14px;border:1px solid rgba(255,255,255,.06)}
-  .row{display:flex;gap:14px;align-items:center;justify-content:space-between;margin:10px 0}
-  .hint{opacity:.7;font-size:.9rem}
-  .score{font-weight:800}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;overscroll-behavior:none}
+  .wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+  header{
+    position:fixed;left:0;right:0;top:0;padding:10px 14px;
+    display:flex;justify-content:space-between;align-items:center;
+    background:linear-gradient(180deg,rgba(0,0,0,.42),transparent);
+    pointer-events:none;z-index:2
+  }
+  header .title{font-weight:800;letter-spacing:.3px;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+  header .badges{display:flex;gap:8px}
+  .badge{
+    pointer-events:auto;user-select:none;
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 12px;border-radius:999px;background:rgba(184,255,154,.08);
+    border:1px solid var(--ring);color:#dfffe0;font-weight:700;font-size:12px;
+    text-transform:uppercase;letter-spacing:.35px;backdrop-filter:blur(6px)
+  }
+  canvas{width:100vw;height:100vh;touch-action:none;display:block}
+  .hud{
+    position:fixed;left:0;right:0;bottom:0;padding:12px;
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    pointer-events:none;z-index:2;background:linear-gradient(0deg,rgba(0,0,0,.42),transparent)
+  }
+  .pill{
+    pointer-events:auto;
+    background:var(--panel);border:1px solid rgba(255,255,255,.06);
+    color:var(--ink);border-radius:12px;padding:10px 14px;font-weight:700;
+    box-shadow:0 8px 30px rgba(0,0,0,.35)
+  }
+  .btn{
+    pointer-events:auto;cursor:pointer;user-select:none;
+    background:linear-gradient(180deg,var(--accent),var(--accent2));
+    color:#0b0d10;border:0;border-radius:12px;font-weight:800;
+    padding:12px 16px;box-shadow:0 10px 30px rgba(184,255,154,.28), inset 0 0 0 1px rgba(0,0,0,.15);
+    transition:transform .08s ease,opacity .2s ease
+  }
+  .btn:active{transform:translateY(1px);opacity:.9}
+  .overlay{
+    position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(1000px 700px at 20% -10%,rgba(184,255,154,.06),transparent 40%),
+               radial-gradient(1000px 700px at 120% 30%,rgba(184,255,154,.04),transparent 35%);
+    text-align:center;padding:24px;gap:16px;z-index:3
+  }
+  .card{
+    background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:16px;
+    padding:18px 16px;max-width:560px;box-shadow:0 10px 40px rgba(0,0,0,.4)
+  }
+  .title2{font-size:clamp(20px,4vw,28px);font-weight:900;margin:0}
+  .muted{color:var(--muted)}
+  .grid{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .hidden{display:none}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="row">
-    <div>
-      <h1>Azbry Runner</h1>
-      <div class="sub">Kumpulkan 🧠 • Hindari 🐞 • Monochrome + Accent Hijau</div>
-    </div>
+  <div class="wrap">
+    <header>
+      <div class="title">Azbry Tap Runner</div>
+      <div class="badges">
+        <div class="badge">Monochrome • Azbry-MD</div>
+      </div>
+    </header>
+
+    <canvas id="game" aria-label="Azbry Tap Runner" role="img"></canvas>
+
     <div class="hud">
-      <span class="tag">Azbry-MD</span>
-      <button id="btnPause" class="btn">⏸️ Pause</button>
-      <button id="btnReset" class="btn">🔁 Reset</button>
+      <div class="pill" id="score">Skor: 0</div>
+      <div class="grid">
+        <button class="btn" id="btnTap" title="Tap / Space">TAP</button>
+        <button class="pill" id="btnPause">⏸️ Pause</button>
+        <button class="pill" id="btnReset">🔄 Reset</button>
+      </div>
+    </div>
+
+    <!-- Overlay Start / Game Over -->
+    <div class="overlay" id="overlay">
+      <div class="card">
+        <h2 class="title2" id="title">Selamat datang di Azbry Tap Runner</h2>
+        <p class="muted" id="desc">
+          Ketuk layar (atau tombol <b>TAP</b>) untuk terbang. Hindari “bug obstacles”.
+          Fokus: simpel, lancar di HP, tema Azbry-MD. Good luck! ✨
+        </p>
+        <p id="best" class="muted">High Score: 0</p>
+        <div class="grid">
+          <button class="btn" id="btnPlay">Mulai</button>
+        </div>
+      </div>
     </div>
   </div>
-
-  <div class="card" style="margin-bottom:12px">
-    <div class="row">
-      <div class="hint">Kontrol: Arrow/WASD atau sentuh/klik untuk bergerak ke arah tersebut.</div>
-      <div><span class="score">Skor: <span id="score">0</span></span> • Nyawa: <span id="hp">3</span></div>
-    </div>
-    <canvas id="game" width="900" height="520"></canvas>
-  </div>
-
-  <div class="row">
-    <a class="btn" href="https://github.com/FebryWesker/Azbry-MD" target="_blank">🌐 Kode Azbry-MD</a>
-    <a class="btn primary" href="https://azbry-portofolio.vercel.app/" target="_blank">🧠 Portofolio</a>
-  </div>
-</div>
 
 <script>
-(() => {
-  const cvs = document.getElementById('game'), ctx = cvs.getContext('2d');
-  const UI = {score:document.getElementById('score'), hp:document.getElementById('hp'),
-              pause:document.getElementById('btnPause'), reset:document.getElementById('btnReset')};
+(()=>{
 
-  // theme
-  const ACCENT = '#b8ff9a', ACCENT2='#8ee887', FG='#e6e8ec';
+  // ====== Canvas bootstrap (retina crisp) ======
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); // biar hemat
+  function fit() {
+    const w = Math.floor(innerWidth * DPR);
+    const h = Math.floor(innerHeight * DPR);
+    canvas.width = w; canvas.height = h;
+    canvas.style.width = innerWidth + 'px';
+    canvas.style.height = innerHeight + 'px';
+  }
+  addEventListener('resize', fit, {passive:true});
+  fit();
 
-  // world
-  const W = cvs.width, H = cvs.height;
-  const rnd=(a,b)=>Math.random()*(b-a)+a;
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  // ====== Game state ======
+  const State = { READY:0, PLAY:1, PAUSE:2, GAMEOVER:3 };
+  let state = State.READY;
+
+  // world config
+  const G = 0.0000017;     // gravity px/ms^2 (scaled by DPR)
+  const JUMP = -0.62;      // jump velocity
+  const PIPE_GAP = 220*DPR;
+  const PIPE_W = 90*DPR;
+  const PIPE_DIST = 340*DPR;
+  const SPEED = 0.23;      // px/ms
 
   // player
-  const p = {x:W/2, y:H/2, r:12, speed:3.2, vx:0, vy:0, hp:3, iFrame:0};
-  let score = 0, paused = false, gameOver=false;
-
-  // items & enemies
-  let brains = [], bugs = [], t=0;
-
-  function spawnBrain(){
-    brains.push({x:rnd(40,W-40), y:rnd(40,H-40), r:9, t:0});
-  }
-  function spawnBug(){
-    const edge = Math.random()<.5 ? 'x':'y';
-    let x = edge==='x' ? (Math.random()<.5? -20: W+20) : rnd(0,W);
-    let y = edge==='y' ? (Math.random()<.5? -20: H+20) : rnd(0,H);
-    const ang = Math.atan2(H/2 - y, W/2 - x) + rnd(-.6,.6);
-    const spd = rnd(1.4,2.4);
-    bugs.push({x,y, r:11, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd});
+  const player = { x: 0, y: 0, r: 18*DPR, vy:0, alive:true };
+  function resetPlayer(){
+    player.x = canvas.width * 0.28;
+    player.y = canvas.height * 0.5;
+    player.vy = 0;
+    player.alive = true;
   }
 
-  // input
-  const keys={}; window.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);
-  window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-  // pointer -> move towards cursor/touch
-  let pointer=null;
-  cvs.addEventListener('pointerdown',e=>{pointer={x:e.offsetX,y:e.offsetY}});
-  cvs.addEventListener('pointermove',e=>{if(pointer) pointer={x:e.offsetX,y:e.offsetY}});
-  window.addEventListener('pointerup',()=>pointer=null);
+  // pipes
+  let pipes = [];
+  let lastPipeX = 0;
 
-  // UI
-  UI.pause.onclick=()=>{paused=!paused; UI.pause.textContent = paused?'▶️ Resume':'⏸️ Pause'};
-  UI.reset.onclick=reset;
-
-  function reset(){
-    score=0; p.x=W/2; p.y=H/2; p.vx=p.vy=0; p.hp=3; p.iFrame=0; brains=[]; bugs=[]; t=0; gameOver=false;
-    for(let i=0;i<4;i++) spawnBrain();
+  function spawnPipe(startX){
+    const h = canvas.height;
+    const mid = (0.25 + Math.random()*0.5) * h;
+    pipes.push({
+      x: startX,
+      top: mid - PIPE_GAP/2,
+      bottom: mid + PIPE_GAP/2,
+      passed:false
+    });
   }
-  reset();
 
-  function step(){
-    if(!paused && !gameOver) update();
+  function resetWorld(){
+    pipes = [];
+    lastPipeX = canvas.width + 200*DPR;
+    for(let i=0;i<5;i++){
+      spawnPipe(lastPipeX);
+      lastPipeX += PIPE_DIST;
+    }
+  }
+
+  // score
+  let score = 0;
+  const scoreEl = document.getElementById('score');
+  const bestEl  = document.getElementById('best');
+  const HS_KEY = 'azbry_taprunner_hs';
+  let high = Number(localStorage.getItem(HS_KEY) || 0);
+  function setScore(s){ score = s; scoreEl.textContent = 'Skor: ' + score; }
+  function saveHigh(){ if(score>high){ high=score; localStorage.setItem(HS_KEY, String(high)); } bestEl.textContent='High Score: '+high; }
+  saveHigh();
+
+  // ====== Control ======
+  function flap(){
+    if(state===State.READY){ startGame(); return; }
+    if(state!==State.PLAY) return;
+    player.vy = JUMP;
+    // little pop effect
+    pulse(overlayBtnTap);
+  }
+
+  // simple scale pulse for UI button
+  function pulse(el){ if(!el) return; el.style.transform='scale(.98)'; setTimeout(()=>el.style.transform='',90); }
+
+  canvas.addEventListener('pointerdown', e=>{ e.preventDefault(); flap(); }, {passive:false});
+  document.getElementById('btnTap').addEventListener('click', flap);
+  addEventListener('keydown', e=>{
+    if(e.code==='Space'){ e.preventDefault(); flap(); }
+    if(e.key==='p') togglePause();
+    if(e.key==='r') resetAndReady();
+  }, {passive:false});
+
+  function togglePause(){
+    if(state===State.PLAY){ state=State.PAUSE; showOverlay('Paused','Ketuk “Lanjut” untuk melanjutkan.'); setBtnPlay('Lanjut'); }
+    else if(state===State.PAUSE){ hideOverlay(); state=State.PLAY; last = performance.now(); loop(last); }
+  }
+
+  // ====== Overlay UI ======
+  const overlay = document.getElementById('overlay');
+  const title   = document.getElementById('title');
+  const desc    = document.getElementById('desc');
+  const btnPlay = document.getElementById('btnPlay');
+  const overlayBtnTap = document.getElementById('btnTap');
+  const btnPause = document.getElementById('btnPause');
+  const btnReset = document.getElementById('btnReset');
+
+  btnPlay.addEventListener('click', ()=>{
+    if(state===State.READY || state===State.GAMEOVER) startGame();
+    else if(state===State.PAUSE) togglePause();
+  });
+  btnPause.addEventListener('click', togglePause);
+  btnReset.addEventListener('click', resetAndReady);
+
+  function setBtnPlay(text){ btnPlay.textContent=text; }
+  function showOverlay(t, d){
+    title.textContent = t;
+    desc.innerHTML    = d;
+    overlay.classList.remove('hidden');
+  }
+  function hideOverlay(){ overlay.classList.add('hidden'); }
+
+  function resetAndReady(){
+    state = State.READY;
+    resetPlayer(); resetWorld(); setScore(0); saveHigh();
+    setBtnPlay('Mulai'); showOverlay('Selamat datang di Azbry Tap Runner',
+      'Ketuk layar atau tombol <b>TAP</b> untuk terbang. Hindari rintangan. Semoga menyenangkan! ✨');
+  }
+
+  function startGame(){
+    hideOverlay();
+    resetPlayer(); resetWorld(); setScore(0);
+    state = State.PLAY;
+    last = performance.now();
+    loop(last);
+  }
+
+  // initial
+  resetAndReady();
+
+  // ====== Game loop ======
+  let last = 0;
+  function loop(t){
+    if(state!==State.PLAY) return;
+    const dt = t - last; // ms
+    last = t;
+    update(dt);
     draw();
-    requestAnimationFrame(step);
+    requestAnimationFrame(loop);
   }
 
-  function update(){
-    t++;
+  function update(dt){
+    // player physics
+    player.vy += G * dt;
+    player.y  += player.vy * (dt);
 
-    // spawn pacing
-    if(t%160===0) spawnBug();
-    if(t%120===0 && brains.length<6) spawnBrain();
+    // ground/ceiling
+    if(player.y - player.r < 0){ player.y = player.r; player.vy = 0; }
+    if(player.y + player.r > canvas.height){ player.y = canvas.height - player.r; die(); return; }
 
-    // input move
-    let ax=0, ay=0;
-    if(keys['arrowleft']||keys['a']) ax-=1;
-    if(keys['arrowright']||keys['d']) ax+=1;
-    if(keys['arrowup']||keys['w']) ay-=1;
-    if(keys['arrowdown']||keys['s']) ay+=1;
-    const len=Math.hypot(ax,ay)||1; ax/=len; ay/=len;
+    // pipes move
+    const dx = SPEED * dt * DPR;
+    for(const p of pipes){ p.x -= dx; }
 
-    // pointer seeks
-    if(pointer){
-      const dx=pointer.x-p.x, dy=pointer.y-p.y, dl=Math.hypot(dx,dy);
-      if(dl>4){ ax = dx/dl; ay = dy/dl; }
+    // spawn new pipe if needed
+    if(pipes.length){
+      const lastPipe = pipes[pipes.length-1];
+      if(lastPipe.x < canvas.width - PIPE_DIST){ lastPipeX = lastPipe.x + PIPE_DIST; spawnPipe(lastPipeX); }
     }
 
-    p.vx = ax*p.speed; p.vy = ay*p.speed;
-    p.x = clamp(p.x + p.vx, 12, W-12);
-    p.y = clamp(p.y + p.vy, 12, H-12);
-    if(p.iFrame>0) p.iFrame--;
+    // remove off-screen
+    while(pipes.length && pipes[0].x+PIPE_W < -10*DPR) pipes.shift();
 
-    // update brains wobble & check collect
-    brains.forEach(b=>b.t+=0.08);
-    brains = brains.filter(b=>{
-      const d = Math.hypot(p.x-b.x, p.y-b.y);
-      if(d < p.r + b.r + 2){
-        score++; UI.score.textContent=score;
-        // sedikit naikkan kesulitan
-        if(score%5===0) bugs.forEach(en=>{en.vx*=1.05; en.vy*=1.05});
-        return false;
+    // collisions + score
+    for(const p of pipes){
+      // pass check
+      if(!p.passed && p.x + PIPE_W < player.x - player.r){
+        p.passed = true; setScore(score+1);
       }
-      return true;
-    });
-
-    // update bugs
-    bugs.forEach(en=>{
-      en.x+=en.vx; en.y+=en.vy;
-      // bounce softly di tepi
-      if(en.x<-40||en.x>W+40||en.y<-40||en.y>H+40){
-        const ang = Math.atan2(H/2 - en.y, W/2 - en.x) + rnd(-.4,.4);
-        const spd = Math.hypot(en.vx,en.vy);
-        en.vx=Math.cos(ang)*spd; en.vy=Math.sin(ang)*spd;
+      // collision
+      if(circleRect(player.x, player.y, player.r, p.x, 0, PIPE_W, p.top) ||
+         circleRect(player.x, player.y, player.r, p.x, p.bottom, PIPE_W, canvas.height - p.bottom)){
+        die(); return;
       }
-      const d = Math.hypot(p.x-en.x, p.y-en.y);
-      if(d < p.r + en.r && p.iFrame<=0){
-        p.hp--; UI.hp.textContent=p.hp; p.iFrame=60;
-        if(p.hp<=0){ gameOver=true; UI.pause.textContent='▶️ Restart'; paused=true; }
-      }
-    });
+    }
   }
 
   function draw(){
-    // bg
-    ctx.clearRect(0,0,W,H);
-    // subtle grid
-    ctx.save();
-    ctx.globalAlpha=0.06; ctx.strokeStyle=FG; ctx.lineWidth=1;
-    for(let x=20;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-    for(let y=20;y<H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-    ctx.restore();
+    const w = canvas.width, h = canvas.height;
 
-    // brains
-    brains.forEach(b=>{
-      const r = b.r + Math.sin(b.t)*1.2;
-      ctx.beginPath(); ctx.arc(b.x,b.y,r,0,Math.PI*2);
-      const g = ctx.createRadialGradient(b.x,b.y,1,b.x,b.y,r);
-      g.addColorStop(0, ACCENT);
-      g.addColorStop(1, ACCENT2);
-      ctx.fillStyle=g; ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.stroke();
-    });
+    // background
+    const grd = ctx.createLinearGradient(0,0,0,h);
+    grd.addColorStop(0,'#0b0d10'); grd.addColorStop(1,'#0a0c0e');
+    ctx.fillStyle = grd; ctx.fillRect(0,0,w,h);
 
-    // bugs
-    bugs.forEach(en=>{
-      ctx.beginPath(); ctx.arc(en.x,en.y,en.r,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,80,80,.9)'; ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.stroke();
-      // antena
-      ctx.beginPath(); ctx.moveTo(en.x-6,en.y-3); ctx.lineTo(en.x-12,en.y-8);
-      ctx.moveTo(en.x+6,en.y-3); ctx.lineTo(en.x+12,en.y-8);
-      ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.stroke();
-    });
-
-    // player
-    ctx.save();
-    ctx.translate(p.x,p.y);
-    // ring glow
-    const ring = ctx.createRadialGradient(0,0,2,0,0,p.r+8);
-    ring.addColorStop(0,'rgba(184,255,154,.45)');
-    ring.addColorStop(1,'rgba(184,255,154,0)');
-    ctx.fillStyle=ring; ctx.beginPath(); ctx.arc(0,0,p.r+8,0,Math.PI*2); ctx.fill();
-
-    ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2);
-    ctx.fillStyle = p.iFrame>0 ? 'rgba(184,255,154,.55)' : ACCENT;
-    ctx.fill(); ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.stroke();
-    // Azbry @ symbol mark
-    ctx.lineWidth=2; ctx.strokeStyle='#0b0d10';
-    ctx.beginPath(); ctx.arc(0,0,6,0,Math.PI*2); ctx.moveTo(6,0); ctx.arc(0,0,10,-.2,1.6);
-    ctx.stroke();
-    ctx.restore();
-
-    // game over overlay
-    if(gameOver){
-      ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(0,0,W,H);
-      ctx.fillStyle=FG; ctx.textAlign='center';
-      ctx.font='700 28px Inter, system-ui'; ctx.fillText('Game Over', W/2, H/2-6);
-      ctx.font='500 16px Inter, system-ui'; ctx.fillText('Klik 🔁 Reset untuk mulai lagi', W/2, H/2+20);
+    // subtle grid dots
+    ctx.fillStyle = 'rgba(184,255,154,.04)';
+    const step = 28*DPR;
+    for(let y= (last%step); y<h; y+=step){
+      for(let x= (last%step); x<w; x+=step){
+        ctx.fillRect(x,y,1,1);
+      }
     }
+
+    // pipes
+    for(const p of pipes){
+      ctx.fillStyle = '#0f1317';
+      roundRect(ctx, p.x, 0, PIPE_W, p.top, 8*DPR); ctx.fill();
+      roundRect(ctx, p.x, p.bottom, PIPE_W, h - p.bottom, 8*DPR); ctx.fill();
+
+      // inner
+      ctx.fillStyle = 'rgba(184,255,154,.06)';
+      ctx.fillRect(p.x+8*DPR, 0, PIPE_W-16*DPR, p.top);
+      ctx.fillRect(p.x+8*DPR, p.bottom, PIPE_W-16*DPR, h - p.bottom);
+    }
+
+    // player (glow orb)
+    const r = player.r;
+    const g = ctx.createRadialGradient(player.x,player.y, r*.2, player.x,player.y, r*1.2);
+    g.addColorStop(0, '#b8ff9a'); g.addColorStop(.6, '#84eb7c'); g.addColorStop(1,'rgba(184,255,154,.0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(player.x,player.y,r,0,Math.PI*2); ctx.fill();
+
+    // core dot
+    ctx.fillStyle = '#0b0d10'; ctx.beginPath(); ctx.arc(player.x,player.y,r*.45,0,Math.PI*2); ctx.fill();
+
+    // score big
+    ctx.font = `${28*DPR}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(230,232,236,.8)';
+    ctx.textAlign = 'center'; ctx.fillText(score, w/2, 60*DPR);
   }
 
-  step();
-})();
+  // ====== Helpers ======
+  function circleRect(cx,cy,cr, rx,ry,rw,rh){
+    // nearest point
+    const nx = Math.max(rx, Math.min(cx, rx+rw));
+    const ny = Math.max(ry, Math.min(cy, ry+rh));
+    const dx = cx-nx, dy = cy-ny;
+    return (dx*dx + dy*dy) < cr*cr;
+  }
+
+  function roundRect(ctx,x,y,w,h,r){
+    const rr = Math.min(r, Math.abs(w)/2, Math.abs(h)/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr,y);
+    ctx.arcTo(x+w,y,x+w,y+h,rr);
+    ctx.arcTo(x+w,y+h,x,y+h,rr);
+    ctx.arcTo(x,y+h,x,y,rr);
+    ctx.arcTo(x,y,x+w,y,rr);
+    ctx.closePath();
+  }
+
+  function die(){
+    if(state!==State.PLAY) return;
+    state = State.GAMEOVER;
+    saveHigh();
+    showOverlay('Game Over',
+      `Skormu: <b>${score}</b><br>High Score: <b>${high}</b><br><span class="muted">Ketuk “Main lagi” untuk coba lagi.</span>`);
+    setBtnPlay('Main lagi');
+  }
+
+})(); 
 </script>
 </body>
-</html>5
+</html>
