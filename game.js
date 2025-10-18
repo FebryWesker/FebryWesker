@@ -1,4 +1,4 @@
-// ====== Azbry Tap Runner — game.js (MOBILE FIX) ======
+// ====== Azbry Tap Runner — game.js (MOBILE TAP ULTRA-FIX) ======
 const CANVAS_W = 360;
 const CANVAS_H = 640;
 
@@ -15,6 +15,9 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 canvas.width = CANVAS_W;
 canvas.height = CANVAS_H;
+
+// ⛔ matikan default gesture (zoom/scroll) di area canvas
+canvas.style.touchAction = 'none';
 
 // asset
 const birdImg = new Image();
@@ -38,9 +41,8 @@ const player = { x: 60, y: CANVAS_H / 2, vy: 0, r: 16 };
 let pipes = [];
 let lastSpawnX = CANVAS_W + 120;
 
-function randRange(min, max) {
-  return Math.random() * (max - min) + min;
-}
+// utils
+function randRange(min, max) { return Math.random() * (max - min) + min; }
 function spawnPipePair(x) {
   const margin = 60;
   const gapY = randRange(margin + GAP_HEIGHT / 2, CANVAS_H - margin - GAP_HEIGHT / 2);
@@ -180,9 +182,9 @@ function triggerGameOver() {
   const btnY = CANVAS_H / 2 + 40;
   restartButtonArea = { x: btnX, y: btnY, w: btnW, h: btnH };
 
-  ctx.fillStyle = ctx.createLinearGradient(btnX, btnY, btnX, btnY + btnH);
-  ctx.fillStyle.addColorStop(0, '#b8ff9a');
-  ctx.fillStyle.addColorStop(1, '#8ee887');
+  const g = ctx.createLinearGradient(btnX, btnY, btnX, btnY + btnH);
+  g.addColorStop(0, '#b8ff9a'); g.addColorStop(1, '#8ee887');
+  ctx.fillStyle = g;
   ctx.fillRect(btnX, btnY, btnW, btnH);
   ctx.strokeStyle = 'rgba(0,0,0,.18)';
   ctx.strokeRect(btnX + 0.5, btnY + 0.5, btnW - 1, btnH - 1);
@@ -210,19 +212,34 @@ function flap() {
   }
 }
 
-function onPointerDown(evt) {
-  evt.preventDefault(); // fix tap HP
+// ——— INPUT HANDLERS (mobile/desktop) ———
+function getPointerXY(evt) {
   const rect = canvas.getBoundingClientRect();
-  const x = (evt.clientX || (evt.touches && evt.touches[0].clientX)) - rect.left;
-  const y = (evt.clientY || (evt.touches && evt.touches[0].clientY)) - rect.top;
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const cx = x * scaleX;
-  const cy = y * scaleY;
+  let clientX, clientY;
+
+  if (evt.touches && evt.touches.length) {
+    clientX = evt.touches[0].clientX;
+    clientY = evt.touches[0].clientY;
+  } else if (evt.changedTouches && evt.changedTouches.length) {
+    clientX = evt.changedTouches[0].clientX;
+    clientY = evt.changedTouches[0].clientY;
+  } else {
+    clientX = evt.clientX;
+    clientY = evt.clientY;
+  }
+
+  const x = (clientX - rect.left) * (canvas.width / rect.width);
+  const y = (clientY - rect.top) * (canvas.height / rect.height);
+  return { x, y };
+}
+
+function pointerDownHandler(evt) {
+  evt.preventDefault(); // penting buat HP
+  const { x, y } = getPointerXY(evt);
 
   if (gameOver && restartButtonArea) {
     const b = restartButtonArea;
-    if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) {
+    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
       resetGame();
       drawStartScreen();
       return;
@@ -231,7 +248,7 @@ function onPointerDown(evt) {
   flap();
 }
 
-function onKeyDown(e) {
+function keyDownHandler(e) {
   if (e.code === 'Space') {
     if (gameOver && restartButtonArea) {
       resetGame();
@@ -242,10 +259,14 @@ function onKeyDown(e) {
   }
 }
 
-canvas.addEventListener('touchstart', onPointerDown, { passive: false });
-canvas.addEventListener('mousedown', onPointerDown, { passive: false });
-window.addEventListener('keydown', onKeyDown);
+// Pakai pointerdown (universal), plus fallback
+canvas.addEventListener('pointerdown', pointerDownHandler, { passive: false });
+canvas.addEventListener('touchstart', pointerDownHandler, { passive: false });
+canvas.addEventListener('mousedown', pointerDownHandler, { passive: false });
+canvas.addEventListener('click', pointerDownHandler, { passive: false });
+window.addEventListener('keydown', keyDownHandler);
 
+// start screen
 function drawStartScreen() {
   drawBackground();
   drawPlayer();
