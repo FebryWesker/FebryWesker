@@ -356,12 +356,12 @@ const SPEED    = 0.25;  // kecepatan gerak world (px/ms)
   }
 
   function die(){
-    if(state!==State.PLAY) return;
-    state = State.GAMEOVER;
-    saveHigh();
-    showOverlay('Game Over',
-      `Skormu: <b>${score}</b><br>High Score: <b>${high}</b><br><span class="muted">Ketuk “Main lagi” untuk coba lagi.</span>`);
-    setBtnPlay('Main lagi');
+  if(state!==State.PLAY) return;
+  state = State.GAMEOVER;
+  saveHigh();
+  showOverlay('Game Over',
+    `Skormu: <b>${score}</b><br>High Score: <b>${high}</b><br><br><b>Ayo coba lagi!</b><br>🎁 Dapatkan <b>100 skor</b> dan kamu boleh mengambil hadiah dari <b>Febry</b> 😎<br><br><span class="muted">Ketuk “Main lagi” untuk coba lagi.</span>`);
+  setBtnPlay('Main lagi');
   }
 
 })(); 
