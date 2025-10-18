@@ -94,9 +94,9 @@ function update() {
       score++;
 
       // reward check
-      if (score === 50 && !rewardShown) {
+      if (score === 5 && !rewardShown) {
         rewardShown = true;
-        showMessage("🎉 Luar biasa! Kamu mencapai 50 poin!\n🎁 Hadiah: x1 Nasi Uduk Mama Alpi 🍚");
+        showMessage("🎉 Luar biasa! Kamu mencapai 5 poin!\n🎁 Hadiah: x1 Nasi Uduk Mama Alpi 🍚");
       }
     }
   }
