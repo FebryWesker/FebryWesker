@@ -5,8 +5,8 @@
 
 (() => {
   // ====== KONFIGURASI GAME (gunakan setelanmu) ======
-  const GRAVITY       = 0.33;  // jatuh lebih pelan
-  const JUMP_VELOCITY = -9.7;  // dorongan loncat
+  const GRAVITY       = 0.30;  // jatuh lebih pelan
+  const JUMP_VELOCITY = -8.7;  // dorongan loncat
   const PIPE_SPEED    = 2.5;   // kecepatan pipa
   const GAP_HEIGHT    = 160;   // celah
   const PIPE_WIDTH    = 60;    // lebar pipa
@@ -70,7 +70,7 @@
     display:flex; justify-content:space-between; pointer-events:none;
     text-shadow:0 1px 0 rgba(0,0,0,.4);
   `;
-  bar.innerHTML = `<span>GAME • SIMPLE</span><span id="hudScore">Score: 0</span>`;
+  bar.innerHTML = `<span>Azbry-MD • by FebryWesker</span><span id="hudScore">Score: 0</span>`;
   document.body.appendChild(bar);
   const hudScore = bar.querySelector('#hudScore');
 
