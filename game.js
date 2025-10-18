@@ -1,153 +1,242 @@
-// ================================
-// Azbry-MD MiniGame — Tap Runner
-// by FebryWesker
-// ================================
+// Azbry Tap Runner — versi fix untuk Vercel static (mobile-friendly)
 
-// canvas setup
+// ====== KONFIGURASI ASET ======
+const ASSETS = {
+  bird: '/assets/img/bird.png',
+  bg: '/assets/img/bg-city.png'
+};
+
+// ====== INISIALISASI KANVAS ======
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const W = canvas.width;
+const H = canvas.height;
 
-// images
-const birdImg = new Image();
-birdImg.src = './assets/bird.png';
+// ====== TEMA WARNA ======
+const GREEN = '#b8ff9a';
+const GREEN_DARK = '#8ee887';
+const OBST_COLOR = '#1a1f25';
+const OBST_STROKE = '#6df37a';
 
-const bgImg = new Image();
-bgImg.src = './assets/bg.jpg';
-
-// game variables
-let bird = { x: 100, y: canvas.height / 2, width: 48, height: 48, velocity: 0 };
-let gravity = 0.25; // bisa diubah buat tingkat kesulitan
-let jump = -6;
-let obstacles = [];
-let gap = 180;
+// ====== GAME STATE ======
+let state = 'idle'; // idle | playing | gameover
 let score = 0;
-let gameOver = false;
-let rewardShown = false;
+let highScore = parseInt(localStorage.getItem('azbry_highscore')) || 0;
 
-// event listener (klik/tap buat loncat)
-window.addEventListener('pointerdown', () => {
-  if (gameOver) return;
-  bird.velocity = jump;
-});
+// ====== PEMAIN ======
+const player = {
+  x: 70,
+  y: H / 2,
+  r: 18,
+  vy: 0,
+  gravity: 0.25, // lebih ringan
+  jump: -5.5, // lompatan lebih halus
+  img: null
+};
 
-// restart manual
-document.getElementById('restart').addEventListener('click', () => {
-  resetGame();
-});
+// ====== LATAR (parallax) ======
+const bg = { img: null, x: 0, x2: W, speed: 1.2 };
 
-function resetGame() {
-  bird = { x: 100, y: canvas.height / 2, width: 48, height: 48, velocity: 0 };
-  obstacles = [];
-  score = 0;
-  gameOver = false;
-  rewardShown = false;
-  document.getElementById('gameover').style.display = 'none';
+// ====== RINTANGAN ======
+const obstacles = [];
+const OBST_GAP = 150;
+const OBST_WIDTH = 50;
+const OBST_MIN = 60;
+const OBST_SPEED = 2.6; // lebih lambat
+const SPAWN_EVERY = 1300; // ms antar spawn
+let lastSpawn = 0;
+
+// ====== HADIAH ======
+const REWARD_SCORE = 5;
+const rewardMessage = `🎉 Ayo coba lagi!\nKalau dapat ${REWARD_SCORE} poin,\nkamu berhak klaim 1 Nasi Uduk Mama Alpi 🍚`;
+
+// ====== MUAT ASET ======
+function loadAssets() {
+  return new Promise(resolve => {
+    const bird = new Image();
+    const bgImg = new Image();
+    let loaded = 0;
+
+    bird.src = ASSETS.bird;
+    bgImg.src = ASSETS.bg;
+
+    const checkLoaded = () => {
+      loaded++;
+      if (loaded === 2) resolve({ bird, bgImg });
+    };
+
+    bird.onload = checkLoaded;
+    bgImg.onload = checkLoaded;
+  });
 }
 
-// obstacle generator
-function createObstacle() {
-  const top = Math.random() * (canvas.height / 2);
-  const bottom = top + gap;
-  obstacles.push({ x: canvas.width, top: top, bottom: bottom, width: 60 });
+// ====== SPAWN OBSTACLE ======
+function spawnObstacle() {
+  const topH = Math.random() * (H / 2) + OBST_MIN;
+  obstacles.push({ x: W, y: 0, w: OBST_WIDTH, h: topH, passed: false });
+  obstacles.push({ x: W, y: topH + OBST_GAP, w: OBST_WIDTH, h: H - topH - OBST_GAP, passed: false });
 }
 
-setInterval(createObstacle, 1800);
+// ====== DRAW TEXT ======
+function drawText(txt, x, y, size = 26, color = '#e6e8ec', align = 'center') {
+  ctx.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.fillText(txt, x, y);
+}
 
-// main game loop
-function update() {
-  if (gameOver) return;
+// ====== GAME LOOP ======
+function update(delta) {
+  if (state !== 'playing') return;
 
-  bird.velocity += gravity;
-  bird.y += bird.velocity;
+  // background loop
+  bg.x -= bg.speed;
+  bg.x2 -= bg.speed;
+  if (bg.x + W <= 0) bg.x = W;
+  if (bg.x2 + W <= 0) bg.x2 = W;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-  ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+  // gravity
+  player.vy += player.gravity;
+  player.y += player.vy;
 
-  for (let i = 0; i < obstacles.length; i++) {
+  // batas bawah/atas
+  if (player.y + player.r > H) {
+    player.y = H - player.r;
+    gameOver();
+  } else if (player.y - player.r < 0) {
+    player.y = player.r;
+    player.vy = 0;
+  }
+
+  // obstacles
+  for (let i = obstacles.length - 1; i >= 0; i--) {
     const o = obstacles[i];
-    o.x -= 4;
+    o.x -= OBST_SPEED;
 
-    // obstacles
-    ctx.fillStyle = '#1eff86';
-    ctx.fillRect(o.x, 0, o.width, o.top);
-    ctx.fillRect(o.x, o.bottom, o.width, canvas.height - o.bottom);
-    ctx.strokeStyle = '#b8ff9a';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(o.x, 0, o.width, o.top);
-    ctx.strokeRect(o.x, o.bottom, o.width, canvas.height - o.bottom);
-
-    // detect collision
+    // deteksi tabrakan
     if (
-      bird.x < o.x + o.width &&
-      bird.x + bird.width > o.x &&
-      (bird.y < o.top || bird.y + bird.height > o.bottom)
+      player.x + player.r > o.x &&
+      player.x - player.r < o.x + o.w &&
+      player.y + player.r > o.y &&
+      player.y - player.r < o.y + o.h
     ) {
-      endGame();
+      gameOver();
     }
 
-    // score logic
-    if (!o.passed && o.x + o.width < bird.x) {
+    // hapus jika sudah keluar layar
+    if (o.x + o.w < 0) obstacles.splice(i, 1);
+
+    // tambah skor
+    if (!o.passed && o.x + o.w < player.x) {
       o.passed = true;
       score++;
-
-      // reward check
-      if (score === 5 && !rewardShown) {
-        rewardShown = true;
-        showMessage("🎉 Luar biasa! Kamu mencapai 5 poin!\n🎁 Hadiah: x1 Nasi Uduk Mama Alpi 🍚");
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('azbry_highscore', highScore);
       }
     }
   }
 
-  // bird falls off screen
-  if (bird.y + bird.height > canvas.height || bird.y < 0) {
-    endGame();
+  // spawn obstacle baru
+  if (performance.now() - lastSpawn > SPAWN_EVERY) {
+    spawnObstacle();
+    lastSpawn = performance.now();
+  }
+}
+
+// ====== DRAW ======
+function render() {
+  // background
+  ctx.drawImage(bg.img, bg.x, 0, W, H);
+  ctx.drawImage(bg.img, bg.x2, 0, W, H);
+
+  // obstacles
+  for (const o of obstacles) {
+    ctx.fillStyle = OBST_COLOR;
+    ctx.fillRect(o.x, o.y, o.w, o.h);
+    ctx.strokeStyle = OBST_STROKE;
+    ctx.strokeRect(o.x, o.y, o.w, o.h);
   }
 
-  // draw score
-  ctx.fillStyle = '#b8ff9a';
-  ctx.font = 'bold 32px Inter, sans-serif';
-  ctx.fillText(`Score: ${score}`, 20, 50);
+  // player
+  ctx.drawImage(player.img, player.x - player.r, player.y - player.r, player.r * 2, player.r * 2);
 
-  requestAnimationFrame(update);
+  // UI
+  drawText(`Score: ${score}`, W - 100, 40, 22);
+  drawText(`Highscore: ${highScore}`, W - 120, 70, 18, GREEN_DARK);
 }
 
-function endGame() {
-  gameOver = true;
-  document.getElementById('gameover').style.display = 'block';
+// ====== GAME STATE HANDLERS ======
+function resetGame() {
+  obstacles.length = 0;
+  score = 0;
+  player.y = H / 2;
+  player.vy = 0;
+  lastSpawn = 0;
+  state = 'playing';
 }
 
-function showMessage(text) {
-  const msg = document.createElement('div');
-  msg.textContent = text;
-  msg.style.position = 'absolute';
-  msg.style.top = '50%';
-  msg.style.left = '50%';
-  msg.style.transform = 'translate(-50%, -50%) scale(0.9)';
-  msg.style.background = 'rgba(0,0,0,0.7)';
-  msg.style.color = '#b8ff9a';
-  msg.style.padding = '20px 30px';
-  msg.style.borderRadius = '12px';
-  msg.style.fontWeight = '700';
-  msg.style.fontSize = '18px';
-  msg.style.textAlign = 'center';
-  msg.style.boxShadow = '0 0 20px rgba(184,255,154,0.5)';
-  msg.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-  msg.style.opacity = '0';
-  msg.style.whiteSpace = 'pre-line';
-  document.body.appendChild(msg);
-  requestAnimationFrame(() => {
-    msg.style.opacity = '1';
-    msg.style.transform = 'translate(-50%, -50%) scale(1)';
-  });
-  setTimeout(() => {
-    msg.style.opacity = '0';
-    msg.style.transform = 'translate(-50%, -50%) scale(0.9)';
-    setTimeout(() => msg.remove(), 300);
-  }, 4000);
+function gameOver() {
+  state = 'gameover';
+  const ui = window.__AZBRY_UI__;
+  if (ui) {
+    ui.statusEl.textContent = '💀 Game Over';
+    ui.restartBtn.style.display = 'inline-block';
+  }
 }
 
-// start
-update();
+// ====== LOOP ======
+let lastTime = 0;
+function loop(time = 0) {
+  const delta = time - lastTime;
+  lastTime = time;
+
+  ctx.clearRect(0, 0, W, H);
+  render();
+  update(delta);
+
+  if (state === 'gameover') {
+    drawText('GAME OVER', W / 2, H / 2 - 20, 36, GREEN);
+    drawText('Ayo coba lagi!', W / 2, H / 2 + 20, 22);
+    drawText(`Kalau dapat ${REWARD_SCORE} poin, kamu berhak klaim 1 Nasi Uduk Mama Alpi 🍚`, W / 2, H / 2 + 55, 14, '#ccc');
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// ====== INPUT ======
+function jump() {
+  if (state === 'playing') {
+    player.vy = player.jump;
+  }
+}
+
+// ====== INISIALISASI ======
+async function startGame() {
+  const assets = await loadAssets();
+  player.img = assets.bird;
+  bg.img = assets.bg;
+  bg.x = 0;
+  bg.x2 = W;
+
+  const ui = window.__AZBRY_UI__;
+  if (ui) {
+    ui.statusEl.textContent = '🎮 Sedang bermain...';
+    ui.startBtn.style.display = 'none';
+    ui.restartBtn.style.display = 'none';
+  }
+
+  resetGame();
+  requestAnimationFrame(loop);
+}
+
+// ====== EVENT LISTENER ======
+canvas.addEventListener('mousedown', jump);
+canvas.addEventListener('touchstart', jump);
+
+window.addEventListener('DOMContentLoaded', () => {
+  const ui = window.__AZBRY_UI__;
+  if (!ui) return;
+  ui.startBtn.addEventListener('click', startGame);
+  ui.restartBtn.addEventListener('click', startGame);
+});
