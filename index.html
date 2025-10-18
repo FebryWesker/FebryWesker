@@ -126,13 +126,13 @@
   const State = { READY:0, PLAY:1, PAUSE:2, GAMEOVER:3 };
   let state = State.READY;
 
-  // world config
-  const G = 0.0000017;     // gravity px/ms^2 (scaled by DPR)
-  const JUMP = -0.62;      // jump velocity
-  const PIPE_GAP = 220*DPR;
-  const PIPE_W = 90*DPR;
-  const PIPE_DIST = 340*DPR;
-  const SPEED = 0.23;      // px/ms
+  // world config  (pakai satuan px/ms)
+const G = 0.0030;       // gravitasi (lebih besar → jatuh lebih cepat)
+const JUMP = -0.95;     // ke atas saat tap (lebih negatif → lompatan lebih tinggi)
+const PIPE_GAP = 220*DPR;
+const PIPE_W   = 90*DPR;
+const PIPE_DIST= 340*DPR;
+const SPEED    = 0.32;  // kecepatan gerak world (px/ms)
 
   // player
   const player = { x: 0, y: 0, r: 18*DPR, vy:0, alive:true };
