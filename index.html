@@ -1,242 +1,371 @@
-<!doctype html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Azbry Tap Runner</title>
-<style>
-  :root{--bg:#0b0d10;--panel:#111418;--muted:#9aa3b2;--text:#e7eaee;--accent:#b8ff9a;--accent2:#8ee887}
-  html,body{margin:0;height:100%;background:#0b0d10;color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
-  #wrap{max-width:700px;margin:0 auto;padding:10px 12px}
-  h1{margin:6px 0 8px;font-size:18px;font-weight:800;letter-spacing:.3px}
-  .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:10px 12px}
-  canvas{display:block;width:100%;height:auto;border-radius:12px;background:#0b0d10;box-shadow:0 8px 30px rgba(0,0,0,.35)}
-  .hint{margin-top:8px;color:var(--muted);font-size:12px}
-</style>
-</head>
-<body>
-  <div id="wrap">
-    <div class="card">
-      <h1>Azbry Tap Runner</h1>
-      <canvas id="game" width="720" height="420"></canvas>
-      <div class="hint">Tap layar / klik / tekan spasi untuk lompat. Capai skor 100!</div>
-    </div>
-  </div>
+// game.js — Azbry Tap Runner (mobile-first)
 
-<script>
-(() => {
-  // ==== Assets
-  const BIRD_SRC = "https://files.catbox.moe/9whqg7.jpg";
-  const BG_SRC   = "https://files.catbox.moe/0ub3wk.jpg";
+// ====== Konfigurasi aset (samakan dengan struktur repo kamu) ======
+const ASSETS = {
+  bird: 'assets/img/bird.png',     // ganti sesuai nama file burungmu
+  bg:   'assets/img/bg-city.png',  // ganti sesuai nama file latar
+};
 
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
+// ====== Canvas & Context ======
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
 
-  // Responsif (rasio 720x420)
-  function fit() {
-    const w = canvas.parentElement.clientWidth;
-    const scale = Math.min(1, w/720);
-    canvas.style.width = (720*scale)+'px';
-    canvas.style.height = (420*scale)+'px';
+// Ukuran kanvas (disetel tetap biar stabil di HP)
+const W = canvas.width;
+const H = canvas.height;
+
+// ====== Tema (selaras Azbry) ======
+const GREEN = '#b8ff9a';
+const GREEN_DARK = '#8ee887';
+const OBST_COLOR = '#1a1f25';
+const OBST_STROKE = '#6df37a';
+
+// ====== Game State ======
+let state = 'loading'; // loading | playing | gameover
+let score = 0;
+let highScore = parseInt(localStorage.getItem('azbry_highscore') || '0', 10);
+
+// ====== Burung (pemain) ======
+const player = {
+  x: 70,
+  y: H/2,
+  r: 18,
+  vy: 0,
+  gravity: 0.45,
+  jump: -7.6,
+  img: null
+};
+
+// ====== Background (parallax loop) ======
+const bg = {
+  img: null,
+  w: 0,
+  h: 0,
+  x1: 0,
+  x2: 0,
+  speed: 1.2
+};
+
+// ====== Obstacles (pipes + drones) ======
+const obstacles = [];
+const OBST_GAP = 150;            // celah antar atas-bawah
+const OBST_WIDTH = 50;
+const OBST_MIN = 60;             // tinggi min pipe
+const OBST_SPEED = 3.2;          // kecepatan geser
+const SPAWN_EVERY = 1200;        // ms antara spawn rintangan
+const DRONE_CHANCE = 0.45;       // peluang spawn rintangan melayang
+
+let lastSpawn = 0;
+
+// ====== UI ======
+function drawText(txt, x, y, size=28, align='center', color='#e6e8ec') {
+  ctx.font = `700 ${size}px Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'top';
+  ctx.fillText(txt, x, y);
+}
+
+function drawPill(text, x, y) {
+  ctx.save();
+  ctx.shadowColor = GREEN;
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = GREEN;
+  const padX = 14, padY = 6;
+  ctx.font = `700 14px Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+  const w = ctx.measureText(text).width + padX*2;
+  const h = 28;
+  roundRect(ctx, x, y, w, h, 14);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#0b0d10';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + padX, y + h/2);
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.arcTo(x+w, y, x+w, y+h, rr);
+  ctx.arcTo(x+w, y+h, x, y+h, rr);
+  ctx.arcTo(x, y+h, x, y, rr);
+  ctx.arcTo(x, y, x+w, y, rr);
+  ctx.closePath();
+}
+
+// ====== Load Images ======
+function loadImage(src) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = rej;
+    im.src = src;
+  });
+}
+
+async function loadAssets() {
+  [player.img, bg.img] = await Promise.all([
+    loadImage(ASSETS.bird),
+    loadImage(ASSETS.bg)
+  ]);
+  // set loop posisi bg
+  bg.w = bg.img.width;
+  bg.h = bg.img.height;
+  bg.x1 = 0;
+  bg.x2 = bg.w;
+}
+
+// ====== Controls ======
+function flap() {
+  if (state === 'playing') {
+    player.vy = player.jump;
+  } else if (state === 'gameover') {
+    restart();
   }
-  addEventListener('resize', fit); fit();
+}
+canvas.addEventListener('touchstart', flap, { passive: true });
+canvas.addEventListener('mousedown', flap);
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') flap();
+});
 
-  // ==== Game state
-  let assetsReady = 0;  // jalanin loop setelah 2 gambar loaded
-  let running = false, gameOver = false, score = 0, best = 0;
-  const G = 0.65, JUMP = -10.2, FLOOR_H = 56, SPEED = 4;
-  let t = 0;
+// ====== Spawn Obstacles ======
+function spawnObstacle() {
+  // Pipe atas & bawah
+  const topH = OBST_MIN + Math.random() * (H - OBST_MIN*2 - OBST_GAP);
+  const bottomY = topH + OBST_GAP;
+  const bottomH = H - bottomY;
 
-  // player
-  const player = { x: 90, y: 0, w: 44, h: 44, vy: 0, sprite: new Image() };
-  player.sprite.crossOrigin = "anonymous";
-  player.sprite.onload = onAssetReady;
-  player.sprite.src = BIRD_SRC;
+  obstacles.push({
+    type: 'pipeTop',
+    x: W + 20,
+    y: 0,
+    w: OBST_WIDTH,
+    h: topH,
+    passed: false
+  });
+  obstacles.push({
+    type: 'pipeBottom',
+    x: W + 20,
+    y: bottomY,
+    w: OBST_WIDTH,
+    h: bottomH,
+    passed: false
+  });
 
-  // background
-  const bg = new Image();
-  bg.crossOrigin = "anonymous";
-  bg.onload = onAssetReady;
-  bg.src = BG_SRC;
-  let bgX = 0, bgScale = 1;
+  // Drone (melayang) kadang muncul
+  if (Math.random() < DRONE_CHANCE) {
+    const size = 36 + Math.random()*22;
+    const y = 80 + Math.random()*(H - 160);
+    obstacles.push({
+      type: 'drone',
+      x: W + 20 + Math.random()*120,
+      y,
+      w: size,
+      h: size,
+      vy: (Math.random()*1.2 - 0.6), // gerak sedikit vertikal
+      passed: false
+    });
+  }
+}
 
-  function onAssetReady(){
-    assetsReady++;
-    if (assetsReady === 2) startGame();
+// ====== Update ======
+function update(dt) {
+  // background scroll
+  bg.x1 -= bg.speed;
+  bg.x2 -= bg.speed;
+  if (bg.x1 + bg.w <= 0) bg.x1 = bg.x2 + bg.w;
+  if (bg.x2 + bg.w <= 0) bg.x2 = bg.x1 + bg.w;
+
+  // player physics
+  player.vy += player.gravity;
+  player.y += player.vy;
+  // bound
+  if (player.y < player.r) { player.y = player.r; player.vy = 0; }
+  if (player.y > H - player.r) { player.y = H - player.r; player.vy = 0; gameOver(); }
+
+  // spawn
+  const now = performance.now();
+  if (now - lastSpawn > SPAWN_EVERY) {
+    spawnObstacle();
+    lastSpawn = now;
   }
 
-  function startGame(){
-    reset();
-    running = true;
-    requestAnimationFrame(loop);
+  // move obstacles
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const o = obstacles[i];
+    o.x -= OBST_SPEED;
+    if (o.type === 'drone') {
+      o.y += o.vy || 0;
+      // mantul halus
+      if (o.y < 40 || o.y + o.h > H - 40) o.vy = -(o.vy || 0);
+    }
+    // hapus yang keluar layar
+    if (o.x + o.w < -60) obstacles.splice(i, 1);
   }
 
-  const obstacles = [];
-  const SPAWN_EVERY = 90;
-  const OB_W = 44, OB_H_MIN = 26, OB_H_MAX = 66;
-
-  const rnd = (a,b)=>Math.floor(a+Math.random()*(b-a+1));
-  function reset() {
-    obstacles.length = 0; score = 0; t = 0; bgX = 0;
-    player.y = canvas.height - FLOOR_H - player.h;
-    player.vy = 0;
-    running = true; gameOver = false;
+  // collision & score
+  for (const o of obstacles) {
+    if (collide(player, o)) {
+      gameOver();
+      break;
+    }
+    // skor dihitung saat melewati pipe bottom saja biar 1 poin per set
+    if (!o.passed && o.type === 'pipeBottom' && o.x + o.w < player.x - player.r) {
+      o.passed = true;
+      score += 1;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('azbry_highscore', String(highScore));
+      }
+    }
   }
+}
 
-  // input
-  function jump() {
-    if (!running) { reset(); return; }
-    if (gameOver)  { reset(); return; }
-    const groundY = canvas.height - FLOOR_H - player.h;
-    if (player.y >= groundY - 2) player.vy = JUMP;
-  }
-  addEventListener('keydown', e => { if(e.code==='Space'){ e.preventDefault(); jump(); }});
-  canvas.addEventListener('pointerdown', jump);
-  canvas.addEventListener('touchstart', e=>{ e.preventDefault(); jump(); }, {passive:false});
+function collide(p, o) {
+  // burung diperlakukan lingkaran; obstacle kotak
+  const cx = Math.max(o.x, Math.min(p.x, o.x + o.w));
+  const cy = Math.max(o.y, Math.min(p.y, o.y + o.h));
+  const dx = p.x - cx;
+  const dy = p.y - cy;
+  return (dx*dx + dy*dy) <= (p.r*p.r);
+}
 
-  // lantai
-  function drawFloor() {
-    const y = canvas.height - FLOOR_H;
-    const grad = ctx.createLinearGradient(0,y,0,canvas.height);
-    grad.addColorStop(0,'#0d1116'); grad.addColorStop(1,'#0a0d10');
-    ctx.fillStyle = grad; ctx.fillRect(0, y, canvas.width, FLOOR_H);
-    ctx.strokeStyle = 'rgba(184,255,154,.28)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(canvas.width, y + .5); ctx.stroke();
-  }
+// ====== Draw ======
+function draw() {
+  // bg
+  // gambar 2 tile untuk loop
+  drawBg(bg.x1);
+  drawBg(bg.x2);
 
-  function roundRect(ctx, x, y, w, h, r){
-    const rr = Math.max(0, Math.min(r, Math.min(w,h)/2));
-    ctx.beginPath();
-    ctx.moveTo(x+rr, y);
-    ctx.arcTo(x+w, y, x+w, y+h, rr);
-    ctx.arcTo(x+w, y+h, x, y+h, rr);
-    ctx.arcTo(x, y+h, x, y, rr);
-    ctx.arcTo(x, y, x+w, y, rr);
-    ctx.closePath();
-  }
-
-  function drawObstacle(o) {
-    const r = 8;
-    ctx.fillStyle = '#14181d';
-    roundRect(ctx, o.x, o.y, o.w, o.h, r); ctx.fill();
-    ctx.save();
-    ctx.shadowColor = '#b8ff9a'; ctx.shadowBlur = 16;
-    ctx.strokeStyle = '#b8ff9a'; ctx.lineWidth = 2;
-    roundRect(ctx, o.x, o.y, o.w, o.h, r); ctx.stroke();
-    ctx.restore();
-    ctx.strokeStyle = 'rgba(184,255,154,.25)'; ctx.lineWidth = 1;
-    roundRect(ctx, o.x+4, o.y+4, o.w-8, o.h-8, r-4); ctx.stroke();
-  }
-
-  // spawn dari bawah (ground) atau dari atas (hanging)
-  function spawnObstacle() {
-    const fromTop = Math.random() < 0.4; // 40% atas, 60% bawah
-    const h = rnd(OB_H_MIN, OB_H_MAX);
-
-    if (fromTop) {
-      const topMargin = 36;                 // jarak aman dari tepi
-      const maxH = Math.min(h, canvas.height - FLOOR_H - 110); // jangan tutup jalan
-      obstacles.push({ x: canvas.width + 10, y: topMargin, w: OB_W, h: Math.max(24, maxH), top: true });
+  // obstacles
+  for (const o of obstacles) {
+    if (o.type === 'drone') {
+      // kotak melayang dengan outline hijau
+      ctx.fillStyle = OBST_COLOR;
+      ctx.strokeStyle = OBST_STROKE;
+      ctx.lineWidth = 2;
+      roundRect(ctx, o.x, o.y, o.w, o.h, 8);
+      ctx.fill();
+      ctx.stroke();
+      // garis hud tipis
+      ctx.beginPath();
+      ctx.moveTo(o.x, o.y + o.h/2);
+      ctx.lineTo(o.x - 8, o.y + o.h/2);
+      ctx.strokeStyle = GREEN_DARK;
+      ctx.lineWidth = 1;
+      ctx.stroke();
     } else {
-      const y = canvas.height - FLOOR_H - h;
-      obstacles.push({ x: canvas.width + 10, y, w: OB_W, h, top: false });
+      // pipes
+      ctx.fillStyle = OBST_COLOR;
+      ctx.strokeStyle = OBST_STROKE;
+      ctx.lineWidth = 2;
+      roundRect(ctx, o.x, o.y, o.w, o.h, 10);
+      ctx.fill();
+      ctx.stroke();
     }
   }
 
-  function hit(a,b){ return !(a.x+a.w < b.x || a.x > b.x+b.w || a.y+a.h < b.y || a.y > b.y+b.h); }
-
-  function loop() {
-    if (running) requestAnimationFrame(loop);
-    if (!assetsReady) return;
-
-    t++;
-    // update fisika
-    player.vy += G; player.y += player.vy;
-    const groundY = canvas.height - FLOOR_H - player.h;
-    if (player.y > groundY) { player.y = groundY; player.vy = 0; }
-
-    // bg scroll
-    bgScale = canvas.height / bg.height;
-    const bgW = bg.width * bgScale;
-    bgX -= SPEED * 0.5; if (bgX <= -bgW) bgX += bgW;
-
-    // spawn
-    if (t % SPAWN_EVERY === 0) spawnObstacle();
-
-    // move obs
-    for (let i=obstacles.length-1; i>=0; i--) {
-      const o = obstacles[i]; o.x -= SPEED;
-      if (o.x + o.w < 0) obstacles.splice(i,1);
-      if (!o.passed && o.x + o.w < player.x) { o.passed = true; score++; }
-    }
-
-    // collision
-    for (const o of obstacles) if (hit(player,o)) { endGame(); break; }
-
-    // DRAW
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    // bg repeat
-    ctx.drawImage(bg, bgX, 0, bgW, canvas.height);
-    ctx.drawImage(bg, bgX + bgW, 0, bgW, canvas.height);
-
-    drawFloor();
-    obstacles.forEach(drawObstacle);
-
-    // player (shadow kecil)
-    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 10;
-    ctx.drawImage(player.sprite, player.x, Math.round(player.y), player.w, player.h);
+  // player (burung)
+  if (player.img) {
+    const s = player.r*2;
+    ctx.save();
+    // sedikit rotasi sesuai kecepatan
+    const angle = Math.max(-0.5, Math.min(0.6, player.vy * 0.04));
+    ctx.translate(player.x, player.y);
+    ctx.rotate(angle);
+    ctx.drawImage(player.img, -player.r, -player.r, s, s);
     ctx.restore();
-
-    // HUD
-    ctx.fillStyle = '#e7eaee'; ctx.font = '700 20px Inter,system-ui,sans-serif';
-    ctx.fillText(`Score: ${score}`, 16, 30);
-    ctx.fillStyle = '#9aa3b2'; ctx.font = '600 12px Inter,system-ui,sans-serif';
-    ctx.fillText(`Best: ${best}`, 16, 48);
-
-    if (gameOver) drawGameOver();
+  } else {
+    // fallback circle
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
+    ctx.fillStyle = GREEN;
+    ctx.fill();
   }
 
-  function endGame(){ gameOver = true; best = Math.max(best, score); }
+  // HUD
+  drawPill(`Score ${score}`, 16, 12);
+  drawPill(`High ${highScore}`, W - 16 - 96, 12); // lebar kira-kira
+}
 
-  function drawGameOver(){
-    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    const cx = canvas.width/2, W=Math.min(520,canvas.width-60), H=170, X=cx-W/2, Y=canvas.height/2-H/2;
-    ctx.fillStyle = '#111418'; ctx.strokeStyle='rgba(255,255,255,.09)'; ctx.lineWidth=1.5;
-    roundRect(ctx,X,Y,W,H,14); ctx.fill(); ctx.stroke();
+function drawBg(offsetX) {
+  // skala proporsional ke canvas height
+  const scale = H / bg.h;
+  const drawW = bg.w * scale;
+  ctx.drawImage(bg.img, offsetX * scale, 0, drawW, H);
+}
 
-    ctx.fillStyle='#e7eaee'; ctx.font='800 22px Inter,system-ui,sans-serif'; ctx.textAlign='center';
-    ctx.fillText('Game Over', cx, Y+38);
+// ====== Loop ======
+let prev = 0;
+function loop(t) {
+  const dt = t - prev; prev = t;
+  if (state === 'playing') update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
 
-    ctx.fillStyle='#9aa3b2'; ctx.font='600 14px Inter,system-ui,sans-serif';
-    wrapText('Ayo coba lagi! Dapatkan 100 score dan kamu boleh mengambil hadiah dari Febry.',
-             cx, Y+68, W-40, 18);
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  draw();
 
-    const btnW=160, btnH=40, btnX=cx-btnW/2, btnY=Y+H-52;
-    ctx.save(); ctx.shadowColor='#b8ff9a'; ctx.shadowBlur=16;
-    let g = ctx.createLinearGradient(btnX,0,btnX+btnW,0);
-    g.addColorStop(0,'#b8ff9a'); g.addColorStop(1,'#8ee887'); ctx.fillStyle=g;
-    roundRect(ctx,btnX,btnY,btnW,btnH,10); ctx.fill(); ctx.restore();
-    ctx.fillStyle='#0b0d10'; ctx.font='800 14px Inter,system-ui,sans-serif'; ctx.fillText('Main Lagi', cx, btnY+26);
-
-    canvas.onclick = (e)=>{
-      if (!gameOver) return;
-      const rect = canvas.getBoundingClientRect();
-      const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const sy = (e.clientY - rect.top)  * (canvas.height / rect.height);
-      if (sx>=btnX && sx<=btnX+btnW && sy>=btnY && sy<=btnY+btnH) { reset(); }
-    };
+  if (state === 'loading') {
+    drawOverlay('Memuat… sentuh untuk mulai');
+  } else if (state === 'gameover') {
+    drawOverlay('Game Over');
+    drawText('Ayo coba lagi! Dapatkan 100 score', W/2, H/2 + 48, 16, 'center', '#cbd5e1');
+    drawText('dan kamu boleh mengambil hadiah dari Febry', W/2, H/2 + 70, 14, 'center', '#9aa4b2');
+    drawText('Tap untuk main lagi', W/2, H/2 + 104, 14, 'center', GREEN);
   }
+}
 
-  function wrapText(text, x, y, maxW, lh){
-    const words=text.split(' '); let line='', yy=y; ctx.textAlign='center';
-    for(let n=0;n<words.length;n++){
-      const test=line+words[n]+' '; const w=ctx.measureText(test).width;
-      if (w>maxW && n>0){ ctx.fillText(line.trim(), x, yy); line=words[n]+' '; yy+=lh; }
-      else line=test;
-    }
-    ctx.fillText(line.trim(), x, yy);
+function drawOverlay(title) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(11,13,16,.72)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#e6e8ec';
+  drawText(title, W/2, H/2 - 6 - 36, 28);
+  ctx.restore();
+}
+
+// ====== State Control ======
+function start() {
+  state = 'playing';
+  score = 0;
+  player.x = 70;
+  player.y = H/2;
+  player.vy = 0;
+  obstacles.length = 0;
+  lastSpawn = performance.now();
+}
+
+function gameOver() {
+  state = 'gameover';
+}
+
+function restart() {
+  start();
+}
+
+// ====== Boot ======
+(async function boot() {
+  try {
+    await loadAssets();
+  } catch (e) {
+    console.error('Gagal load aset:', e);
   }
+  state = 'loading';
+  requestAnimationFrame(loop);
+
+  // Mulai saat tap pertama
+  const startOnce = () => {
+    if (state === 'loading') start();
+    canvas.removeEventListener('touchstart', startOnce);
+    canvas.removeEventListener('mousedown', startOnce);
+  };
+  canvas.addEventListener('touchstart', startOnce, { passive: true });
+  canvas.addEventListener('mousedown', startOnce);
 })();
-</script>
-</body>
-</html>
